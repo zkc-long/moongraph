@@ -105,6 +105,47 @@ fn Parser::query(self : Parser) -> Query raise ParseError {
       where_ = Some(self.expr())
     }
   }
+  let mut with_ : WithClause? = None
+  let post : Array[PathPat] = []
+  let mut post_where : Expr? = None
+  if self.at(KwWith) {
+    self.advance()
+    let with_distinct = if self.at(KwDistinct) {
+      self.advance()
+      true
+    } else {
+      false
+    }
+    let with_items : Array[ReturnItem] = []
+    with_items.push(self.return_item())
+    while self.at(Comma) {
+      self.advance()
+      with_items.push(self.return_item())
+    }
+    let with_where = if self.at(KwWhere) {
+      self.advance()
+      Some(self.expr())
+    } else {
+      None
+    }
+    with_ = Some({
+      items: with_items,
+      distinct: with_distinct,
+      where_: with_where,
+    })
+    if self.at(KwMatch) {
+      self.advance()
+      post.push(self.pattern())
+      while self.at(Comma) {
+        self.advance()
+        post.push(self.pattern())
+      }
+      if self.at(KwWhere) {
+        self.advance()
+        post_where = Some(self.expr())
+      }
+    }
+  }
   let write = self.write_clause()
   let has_return = self.at(KwReturn)
   if !has_return && write is None {
@@ -154,7 +195,20 @@ fn Parser::query(self : Parser) -> Query raise ParseError {
   if !self.at(Eof) {
     raise ParseError::UnexpectedToken("end of query", self.peek().pos)
   }
-  { patterns, where_, write, has_return, items, distinct, order, skip, limit, }
+  {
+    patterns,
+    where_,
+    with_,
+    post,
+    post_where,
+    write,
+    has_return,
+    items,
+    distinct,
+    order,
+    skip,
+    limit,
+  }
 }
 
 ///|
@@ -420,7 +474,7 @@ fn Parser::comparison(self : Parser) -> Expr raise ParseError {
     let op = if self.at(KwStartsWith) { "STARTS WITH" } else { "ENDS WITH" }
     self.advance()
     let token = self.peek()
-    if token.kind == Ident && token.text == "WITH" {
+    if (token.kind == Ident || token.kind == KwWith) && token.text == "WITH" {
       self.advance()
     } else {
       raise ParseError::UnexpectedToken("WITH", token.pos)

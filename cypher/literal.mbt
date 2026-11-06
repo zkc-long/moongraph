@@ -36,7 +36,9 @@ fn literal_value(expr : Expr) -> @mg.Value? {
 pub fn parse_node_expected(
   text : String,
 ) -> (Array[String], Map[String, @mg.Value])? {
-  let query = parse_query("MATCH " + text + " RETURN 1") catch { _ => return None }
+  let query = parse_query("MATCH " + text + " RETURN 1") catch {
+    _ => return None
+  }
   if query.patterns.length() != 1 || query.patterns[0].hops.length() != 0 {
     return None
   }
@@ -53,9 +55,7 @@ pub fn parse_node_expected(
 
 ///|
 /// Parse `[:KNOWS {k: v}]` into a type and properties.
-pub fn parse_rel_expected(
-  text : String,
-) -> (String, Map[String, @mg.Value])? {
+pub fn parse_rel_expected(text : String) -> (String, Map[String, @mg.Value])? {
   let query = parse_query("MATCH ()-" + text + "->() RETURN 1") catch {
     _ => return None
   }

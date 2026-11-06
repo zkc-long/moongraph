@@ -25,6 +25,7 @@ let result = @cypher.run(g, "MATCH (a:Person)-[:KNOWS]->(b) RETURN a.name, b.nam
   variable-length paths (`*1..3`), `WHERE`, `RETURN` with `DISTINCT`,
   aggregations (`count`, `sum`, `avg`, `min`, `max`, `collect`),
   `ORDER BY`, `SKIP`, `LIMIT`
+* `WITH`: projection/aggregation stage, optional `WHERE`, then a further `MATCH`
 * writes: `CREATE`, `MERGE`, `SET`, `DELETE` and `DETACH DELETE`, with
   tombstoned deletes so ids stay stable
 * JSON Lines / CSV import, JSON snapshot save/load, Graphviz DOT export
@@ -33,7 +34,7 @@ let result = @cypher.run(g, "MATCH (a:Person)-[:KNOWS]->(b) RETURN a.name, b.nam
 
 ## What is deliberately out of scope
 
-`OPTIONAL MATCH`, `UNION`, `CALL`, `WITH`, `FOREACH`, `LOAD CSV`, parameters,
+`OPTIONAL MATCH`, `UNION`, `CALL`, `FOREACH`, `LOAD CSV`, parameters,
 structural (node/relationship) result values, `shortestPath`, multi-statement
 transactions and concurrency. The engine is single-threaded by design; see
 `docs/design.md` for the rationale and `conformance/README.md` for the TCK

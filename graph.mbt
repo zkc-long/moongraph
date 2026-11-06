@@ -314,7 +314,7 @@ pub fn node_text(labels : Array[String], props : Map[String, Value]) -> String {
 }
 
 ///|
-pub fn Graph::node_text(self : Graph, id : Int) -> String {
+pub fn Graph::node_text(self : Graph, id : Int32) -> String {
   node_text(self.node(id).labels, self.node(id).props)
 }
 
@@ -345,6 +345,6 @@ pub fn rel_text(etype : String, props : Map[String, Value]) -> String {
 }
 
 ///|
-pub fn Graph::rel_text(self : Graph, id : Int) -> String {
+pub fn Graph::rel_text(self : Graph, id : Int32) -> String {
   rel_text(self.edge(id).etype, self.edge(id).props)
 }

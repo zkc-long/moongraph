@@ -276,7 +276,9 @@ fn structural_expectation(table : Array[Array[String]]) -> String? {
         return Some("path values are outside the supported subset")
       }
       if c.has_prefix("[:") && canonical_rel_cell(c) is None {
-        return Some("relationship expectations are outside the supported subset")
+        return Some(
+          "relationship expectations are outside the supported subset",
+        )
       }
     }
     i = i + 1
@@ -306,9 +308,9 @@ fn canonical_rel_cell(text : String) -> String? {
 /// are reported as skipped instead of failed so the pass rate stays honest.
 fn unsupported_syntax(query : String) -> String? {
   let markers : Array[String] = [
-    "$", "WITH ", "UNION", "OPTIONAL", "CALL ", "FOREACH", "LOAD CSV", "PROCEDURE",
-    " ^ ", "STARTS WITH", "ENDS WITH", "CONTAINS", "SET (", "count(*)",
-    "ON CREATE", "ON MATCH", "{.", "{*", "IN [",
+    "$", "UNION", "OPTIONAL", "CALL ", "FOREACH", "LOAD CSV", "PROCEDURE", " ^ ",
+    "STARTS WITH", "ENDS WITH", "CONTAINS", "SET (", "count(*)", "ON CREATE", "ON MATCH",
+    "{.", "{*", "IN [",
   ]
   for marker in markers {
     if query.contains(marker) {

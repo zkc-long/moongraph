@@ -4,7 +4,11 @@ package "moongraph/cypher"
 // Values
 pub fn expr_text(Expr) -> String
 
+pub fn parse_node_expected(String) -> (Array[String], Map[String, @moongraph.Value])?
+
 pub fn parse_query(String) -> Query raise ParseError
+
+pub fn parse_rel_expected(String) -> (String, Map[String, @moongraph.Value])?
 
 pub fn run(@moongraph.Graph, String) -> QueryResult raise ParseError
 
@@ -75,6 +79,9 @@ pub struct PathPat {
 
 pub struct Query {
   patterns : Array[PathPat]
+  with_ : WithClause?
+  post : Array[PathPat]
+  post_where : Expr?
   write : WriteClause?
   has_return : Bool
   where_ : Expr?
@@ -173,12 +180,19 @@ pub enum TokKind {
   KwSet
   KwDelete
   KwDetach
+  KwWith
 }
 
 pub struct Token {
   kind : TokKind
   text : String
   pos : Int32
+}
+
+pub struct WithClause {
+  items : Array[ReturnItem]
+  distinct : Bool
+  where_ : Expr?
 }
 
 pub enum WriteClause {

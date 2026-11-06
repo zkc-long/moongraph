@@ -41,25 +41,28 @@ moon build --target native
 
 | file | scenarios | passed | failed | skipped |
 |---|---|---|---|---|
-| Match1 | 11 | 2 | 0 | 9 |
-| Match2 | 13 | 1 | 4 | 8 |
-| Match3 | 30 | 0 | 11 | 19 |
-| Return1 | 2 | 0 | 0 | 2 |
+| Match1 | 11 | 5 | 0 | 6 |
+| Match2 | 13 | 5 | 2 | 6 |
+| Match3 | 30 | 11 | 15 | 4 |
+| Return1 | 2 | 1 | 0 | 1 |
 | Return2 | 18 | 6 | 7 | 5 |
 | Create1 | 20 | 0 | 3 | 17 |
-| Set1 | 11 | 0 | 3 | 8 |
+| Set1 | 11 | 0 | 1 | 10 |
 | Delete1 | 8 | 0 | 2 | 6 |
-| Merge1 | 17 | 2 | 8 | 7 |
+| Merge1 | 17 | 2 | 7 | 8 |
 
-11 passed / 38 failed / 81 skipped. The number is low and that is the honest
-state: the runner, the Gherkin parser and the skip taxonomy are the work here,
-and they turn "we implement a Cypher subset" into something measurable.
+**30 passed / 37 failed / 63 skipped.** Over the 67 scenarios the runner can
+actually evaluate, that is a 44.8% pass rate.
+
+Progression while building this: structural node/relationship values took
+passed from 11 to 26; the `WITH` clause took it to 30.
 
 ## What closing the gap would take
 
-1. **Structural values** (node/relationship/map/path) — the single largest
-   source of skips; needs value identity plus structural comparison.
-2. `WITH` — required by most `RETURN` scenarios.
-3. Parameters and the standard fixture graph, which unlocks the `any graph`
-   scenarios.
-4. `OPTIONAL MATCH` and null-row semantics.
+1. **Parameters and the standard fixture graph** — unlocks the 17 `Create1`
+   skips and most of `Set1`/`Delete1`.
+2. **Label predicates in expressions** (`RETURN (n:Foo)`) and remaining
+   unsupported syntax in setup queries.
+3. **Merge semantics**: `ON CREATE SET` / `ON MATCH SET`, and multi-element
+   merges.
+4. **Path values** (`()-[r]->()`) as first-class results.

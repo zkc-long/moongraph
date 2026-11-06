@@ -61,8 +61,18 @@ pub struct OrderItem {
 }
 
 ///|
+pub struct WithClause {
+  items : Array[ReturnItem]
+  distinct : Bool
+  where_ : Expr?
+}
+
+///|
 pub struct Query {
   patterns : Array[PathPat]
+  with_ : WithClause?
+  post : Array[PathPat]
+  post_where : Expr?
   write : WriteClause?
   has_return : Bool
   where_ : Expr?

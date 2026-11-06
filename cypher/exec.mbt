@@ -71,9 +71,36 @@ fn execute(graph : @mg.Graph, query : Query) -> QueryResult {
     }
     None => ()
   }
-  let bindings = match query.write {
-    Some(clause) => apply_write(graph, clause, bindings)
+  let after_with = match query.with_ {
+    Some(clause) => apply_with(graph, clause, bindings)
     None => bindings
+  }
+  // A second MATCH may run after WITH, expanding from the surviving variables.
+  let mut reported : Array[Binding] = after_with
+  for pattern in query.post {
+    let next : Array[Binding] = []
+    for binding in reported {
+      for matched in match_pattern(graph, pattern, binding) {
+        next.push(matched)
+      }
+    }
+    reported = next
+  }
+  match query.post_where {
+    Some(cond) => {
+      let kept : Array[Binding] = []
+      for binding in reported {
+        if truthy(eval(cond, graph, binding)) {
+          kept.push(binding)
+        }
+      }
+      reported = kept
+    }
+    None => ()
+  }
+  let bindings = match query.write {
+    Some(clause) => apply_write(graph, clause, reported)
+    None => reported
   }
   if !query.has_return {
     return { columns: [], rows: [], }
@@ -550,7 +577,7 @@ fn eval_function(
 ///|
 /// Resolve a variable to `(kind, id)` where kind 0 is a node and 1 a
 /// relationship. Used by `id()`, `labels()` and `type()`.
-fn resolve_binding_id(binding : Binding, name : String) -> (Int, Int)? {
+fn resolve_binding_id(binding : Binding, name : String) -> (Int32, Int32)? {
   match binding.nodes.get(name) {
     Some(id) => Some((0, id))
     None =>

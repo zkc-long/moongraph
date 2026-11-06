@@ -14,6 +14,10 @@ pub fn load_graph(String) -> Graph raise LoadError
 
 pub fn load_registry_records(String) -> Graph raise LoadError
 
+pub fn node_text(Array[String], Map[String, Value]) -> String
+
+pub fn rel_text(String, Map[String, Value]) -> String
+
 pub fn to_dot(Graph) -> String
 
 pub fn value_to_json(Value) -> Json
@@ -74,9 +78,11 @@ pub fn Graph::lookup_property(Self, String, Value) -> Array[Int32]?
 pub fn Graph::new() -> Self
 pub fn Graph::node(Self, Int32) -> Node
 pub fn Graph::node_count(Self) -> Int32
+pub fn Graph::node_text(Self, Int32) -> String
 pub fn Graph::nodes_with_label(Self, String) -> Array[Int32]
 pub fn Graph::out_edge_ids(Self, Int32) -> Array[Int32]
 pub fn Graph::out_neighbors(Self, Int32) -> Array[(Int32, Int32)]
+pub fn Graph::rel_text(Self, Int32) -> String
 pub fn Graph::remove_node_prop(Self, Int32, String) -> Unit
 pub fn Graph::set_edge_prop(Self, Int32, String, Value) -> Unit
 pub fn Graph::set_node_prop(Self, Int32, String, Value) -> Unit
@@ -126,6 +132,7 @@ pub fn Value::is_number(Self) -> Bool
 pub fn Value::null() -> Self
 pub fn Value::of_int(Int64) -> Self
 pub fn Value::of_str(String) -> Self
+pub fn Value::to_cypher(Self) -> String
 pub fn Value::to_display(Self) -> String
 pub fn Value::to_literal(Self) -> String
 

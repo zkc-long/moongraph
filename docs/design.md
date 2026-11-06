@@ -68,7 +68,7 @@ to a browser demo later.
 ## Known limitations
 
 * read-only: no `CREATE`/`MERGE`/`SET`/`DELETE`
-* no `OPTIONAL MATCH`, `UNION`, `CALL`, `WITH`, `FOREACH`
+* no `OPTIONAL MATCH`, `UNION`, `CALL`, `FOREACH`; `WITH` supports a single projection stage followed by one more `MATCH`
 * a variable-length relationship variable binds the last relationship, not the
   full list
 * aggregates are recognised only at the top level of a projection item
