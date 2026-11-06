@@ -1,0 +1,4 @@
+import {
+  "moongraph" @mg,
+  "moonbitlang/core/string",
+}
