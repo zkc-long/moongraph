@@ -276,3 +276,75 @@ fn encode_index_key(value : Value) -> String {
     _ => ""
   }
 }
+
+///|
+/// Canonical Cypher text for a node: `(:Label {key: value})` with sorted labels
+/// and sorted property keys, so two structurally equal nodes render identically.
+pub fn node_text(labels : Array[String], props : Map[String, Value]) -> String {
+  let sorted_labels = labels.copy()
+  sorted_labels.sort()
+  let buf = StringBuilder()
+  buf.write_string("(:")
+  let mut first = true
+  for label in sorted_labels {
+    if !first {
+      buf.write_string(":")
+    }
+    first = false
+    buf.write_string(label)
+  }
+  if props.length() > 0 {
+    buf.write_string(" {")
+    let keys = Array::from_iter(props.keys())
+    keys.sort()
+    let mut first_prop = true
+    for key in keys {
+      if !first_prop {
+        buf.write_string(", ")
+      }
+      first_prop = false
+      buf.write_string(key)
+      buf.write_string(": ")
+      buf.write_string(props[key].to_cypher())
+    }
+    buf.write_string("}")
+  }
+  buf.write_string(")")
+  buf.to_string()
+}
+
+///|
+pub fn Graph::node_text(self : Graph, id : Int) -> String {
+  node_text(self.node(id).labels, self.node(id).props)
+}
+
+///|
+/// Canonical Cypher text for a relationship: `[:TYPE {key: value}]`.
+pub fn rel_text(etype : String, props : Map[String, Value]) -> String {
+  let buf = StringBuilder()
+  buf.write_string("[:")
+  buf.write_string(etype)
+  if props.length() > 0 {
+    buf.write_string(" {")
+    let keys = Array::from_iter(props.keys())
+    keys.sort()
+    let mut first = true
+    for key in keys {
+      if !first {
+        buf.write_string(", ")
+      }
+      first = false
+      buf.write_string(key)
+      buf.write_string(": ")
+      buf.write_string(props[key].to_cypher())
+    }
+    buf.write_string("}")
+  }
+  buf.write_string("]")
+  buf.to_string()
+}
+
+///|
+pub fn Graph::rel_text(self : Graph, id : Int) -> String {
+  rel_text(self.edge(id).etype, self.edge(id).props)
+}

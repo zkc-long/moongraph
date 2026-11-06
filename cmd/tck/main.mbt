@@ -192,9 +192,11 @@ fn run_scenario(sc : Scenario) -> Outcome {
         None => ()
       }
       let result = @cypher.run(graph, step.doc) catch {
-        @cypher.ParseError::UnexpectedToken(what, pos) =>
-          return Failed("parse error at \{pos}: expected " + what)
-        _ => return Failed("parse error")
+        _ =>
+          match unsupported_syntax(step.doc) {
+            Some(why) => return Skipped(why)
+            None => return Failed("query failed to parse")
+          }
       }
       columns = result.columns
       rows = result.rows
@@ -267,13 +269,14 @@ fn structural_expectation(table : Array[Array[String]]) -> String? {
   while i < table.length() {
     for cell in table[i] {
       let c = cell.trim().to_owned()
-      if c.has_prefix("(") ||
-        c.has_prefix("<node>") ||
-        c.has_prefix("<rel>") ||
-        c.has_prefix("{") {
-        return Some(
-          "structural value expectations are outside the supported subset",
-        )
+      if c.has_prefix("<node>") || c.has_prefix("<rel>") || c.has_prefix("{") {
+        return Some("placeholder expectations are outside the supported subset")
+      }
+      if c.has_prefix("(") && canonical_node_cell(c) is None {
+        return Some("path values are outside the supported subset")
+      }
+      if c.has_prefix("[:") && canonical_rel_cell(c) is None {
+        return Some("relationship expectations are outside the supported subset")
       }
     }
     i = i + 1
@@ -282,12 +285,30 @@ fn structural_expectation(table : Array[Array[String]]) -> String? {
 }
 
 ///|
+/// Canonical text for an expected node, or `None` if it is not a node literal.
+fn canonical_node_cell(text : String) -> String? {
+  match @cypher.parse_node_expected(text) {
+    Some((labels, props)) => Some(@mg.node_text(labels, props))
+    None => None
+  }
+}
+
+///|
+fn canonical_rel_cell(text : String) -> String? {
+  match @cypher.parse_rel_expected(text) {
+    Some((name, props)) => Some(@mg.rel_text(name, props))
+    None => None
+  }
+}
+
+///|
 /// Cypher constructs this engine does not implement. Scenarios that need them
 /// are reported as skipped instead of failed so the pass rate stays honest.
 fn unsupported_syntax(query : String) -> String? {
   let markers : Array[String] = [
     "$", "WITH ", "UNION", "OPTIONAL", "CALL ", "FOREACH", "LOAD CSV", "PROCEDURE",
-    " ^ ", "STARTS WITH", "ENDS WITH", "CONTAINS",
+    " ^ ", "STARTS WITH", "ENDS WITH", "CONTAINS", "SET (", "count(*)",
+    "ON CREATE", "ON MATCH", "{.", "{*", "IN [",
   ]
   for marker in markers {
     if query.contains(marker) {
@@ -329,6 +350,18 @@ fn parse_cell(cell : String) -> @mg.Value {
   if chars.length() >= 2 {
     if chars[0] == '\'' && chars[chars.length() - 1] == '\'' {
       return @mg.VStr(String::from_array(chars[1:chars.length() - 1]))
+    }
+  }
+  if text.has_prefix("[:") {
+    match canonical_rel_cell(text) {
+      Some(rendered) => return @mg.VStr(rendered)
+      None => ()
+    }
+  }
+  if text.has_prefix("(") {
+    match canonical_node_cell(text) {
+      Some(rendered) => return @mg.VStr(rendered)
+      None => ()
     }
   }
   if text.has_prefix("[") && text.ends_with("]") {

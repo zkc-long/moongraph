@@ -213,3 +213,27 @@ fn Value::rank(self : Value) -> Int32 {
 pub fn Value::equal_value(self : Value, other : Value) -> Bool {
   self.compare(other) == 0
 }
+
+///|
+/// Cypher-style rendering: strings use single quotes, which is the form used
+/// by the TCK and by node/relationship text.
+pub fn Value::to_cypher(self : Value) -> String {
+  match self {
+    VStr(s) => "'" + s.replace(old="'", new="\\'") + "'"
+    VList(items) => {
+      let buf = StringBuilder()
+      buf.write_string("[")
+      let mut first = true
+      for item in items {
+        if !first {
+          buf.write_string(", ")
+        }
+        first = false
+        buf.write_string(item.to_cypher())
+      }
+      buf.write_string("]")
+      buf.to_string()
+    }
+    _ => self.to_display()
+  }
+}

@@ -308,10 +308,10 @@ fn eval(expr : Expr, graph : @mg.Graph, binding : Binding) -> @mg.Value {
         Some(v) => v
         None =>
           match binding.nodes.get(name) {
-            Some(id) => @mg.VInt(id.to_int64())
+            Some(id) => @mg.VStr(graph.node_text(id))
             None =>
               match binding.rels.get(name) {
-                Some(id) => @mg.VInt(id.to_int64())
+                Some(id) => @mg.VStr(graph.rel_text(id))
                 None => @mg.VNull
               }
           }
@@ -466,31 +466,29 @@ fn eval_function(
   match name {
     "id" =>
       match args {
-        [arg] =>
-          match eval(arg, graph, binding) {
-            @mg.VInt(_) as id => id
-            _ => @mg.VNull
+        [EVar(var_name)] =>
+          match resolve_binding_id(binding, var_name) {
+            Some((_, id)) => @mg.VInt(id.to_int64())
+            None => @mg.VNull
           }
         _ => @mg.VNull
       }
     "labels" =>
       match args {
-        [arg] =>
-          match eval(arg, graph, binding) {
-            @mg.VInt(id) =>
-              @mg.VList(
-                graph.node(id.to_int()).labels.map(fn(l) { @mg.VStr(l) }),
-              )
-            _ => @mg.VNull
+        [EVar(var_name)] =>
+          match binding.nodes.get(var_name) {
+            Some(id) =>
+              @mg.VList(graph.node(id).labels.map(fn(l) { @mg.VStr(l) }))
+            None => @mg.VNull
           }
         _ => @mg.VNull
       }
     "type" =>
       match args {
-        [arg] =>
-          match eval(arg, graph, binding) {
-            @mg.VInt(id) => @mg.VStr(graph.edge(id.to_int()).etype)
-            _ => @mg.VNull
+        [EVar(var_name)] =>
+          match binding.rels.get(var_name) {
+            Some(id) => @mg.VStr(graph.edge(id).etype)
+            None => @mg.VNull
           }
         _ => @mg.VNull
       }
@@ -546,5 +544,19 @@ fn eval_function(
     // Aggregates are handled in `project`; outside a projection they are null.
     "count" | "sum" | "avg" | "min" | "max" | "collect" => @mg.VNull
     _ => @mg.VNull
+  }
+}
+
+///|
+/// Resolve a variable to `(kind, id)` where kind 0 is a node and 1 a
+/// relationship. Used by `id()`, `labels()` and `type()`.
+fn resolve_binding_id(binding : Binding, name : String) -> (Int, Int)? {
+  match binding.nodes.get(name) {
+    Some(id) => Some((0, id))
+    None =>
+      match binding.rels.get(name) {
+        Some(id) => Some((1, id))
+        None => None
+      }
   }
 }
