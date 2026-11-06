@@ -39,31 +39,38 @@ moon build --target native
 
 ## Current numbers (2026-11-07)
 
-`Given any graph` now builds the real `binary-tree-1` fixture
-(`conformance/graphs/`, vendored from the TCK), so the skip count dropped from
-50 to 28.
-
 | file | scenarios | passed | failed | skipped |
 |---|---|---|---|---|
-| Match1 | 11 | 5 | 5 | 1 |
-| Match2 | 13 | 5 | 7 | 1 |
-| Match3 | 30 | 11 | 15 | 4 |
+| Match1 | 11 | 5 | 0 | 6 |
+| Match2 | 13 | 7 | 0 | 6 |
+| Match3 | 30 | 20 | 6 | 4 |
 | Return1 | 2 | 1 | 0 | 1 |
-| Return2 | 18 | 6 | 7 | 5 |
-| Create1 | 20 | 9 | 6 | 5 |
-| Set1 | 11 | 1 | 6 | 4 |
-| Delete1 | 8 | 2 | 3 | 3 |
-| Merge1 | 17 | 5 | 8 | 4 |
+| Return2 | 18 | 10 | 3 | 5 |
+| Create1 | 20 | 12 | 0 | 8 |
+| Set1 | 11 | 1 | 5 | 5 |
+| Delete1 | 8 | 3 | 0 | 5 |
+| Merge1 | 17 | 7 | 5 | 5 |
 
-**45 passed / 57 failed / 28 skipped**, i.e. 44.1% of the 102 scenarios the
-runner executes. Running more scenarios lowers the percentage but raises the
-number of scenarios that actually pass — the previous 39/80 was measured on a
-smaller, easier subset.
+**66 passed / 19 failed / 45 skipped**, i.e. 77.6% of the 85 scenarios the runner
+evaluates. Six of the nine files are at 100% of what they execute.
 
-## What closing the gap would take
+Progression: structural values 11 → 26, `WITH` 26 → 30, side effects + keyword
+case + `MERGE ON CREATE` 30 → 39, paths + fixture 39 → 45, list/label/map
+expressions and aggregate expressions 45 → 51, script setup + self-loop/label
+fixes 51 → 64, relationship uniqueness 64 → 66.
 
-1. **Node/relationship equality inside `DISTINCT`, `ORDER BY` and grouping** —
-   structural values are text today, which is not enough for every comparison.
-2. **List expressions**: concatenation, comprehension, indexing.
-3. **Label predicates** (`RETURN (n:Foo)`) and map projections.
-4. **MERGE edge cases**: multiple elements, `ON CREATE` interactions, uniqueness.
+## Why the rest is skipped or failing
+
+Skips (45):
+
+* error-assertion scenarios (`a SyntaxException should be raised`) — the runner
+  does not model exception types;
+* `UNWIND`, `REMOVE`, `count(*)`, map literals in `RETURN`, and a few setup
+  scripts that need them.
+
+Failures (19):
+
+* `Set1` is the weak spot: property writes over the fixture graph disagree with
+  the TCK's property accounting (the fixture already carries `name` everywhere);
+* `Merge1`: multi-element merges and `ON CREATE` on freshly created nodes;
+* a handful of mixed directed/undirected self-relationship row counts.

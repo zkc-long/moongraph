@@ -31,15 +31,18 @@ let result = @cypher.run(g, "MATCH (a:Person)-[:KNOWS]->(b) RETURN a.name, b.nam
 * JSON Lines / CSV import, JSON snapshot save/load, Graphviz DOT export
 * a standalone HTML visualisation (`html` subcommand: embedded JSON + force layout, no server)
 * path values: `MATCH p = (a)-[:R*1..3]->(b)` binds a canonical path, `length(p)` gives hops
+* list concatenation, indexing, slicing and comprehensions `[x IN xs WHERE p | e]`
+* label predicates `(n:Label)`, map projection `n {.name, alias: expr}`, aggregates inside expressions
+* relationship uniqueness inside a pattern (a pattern cannot traverse the same edge twice)
 * `shortestPath((a)-[:T*]-(b))` pattern form, plus the `shortestPath(a, b)` scalar
 * a CLI (`moongraph query|info|import|registry|dot|html|bench`) that runs natively
 * an openCypher TCK subset runner (`cmd/tck`) with an explicit skip taxonomy
 
 ## What is deliberately out of scope
 
-`OPTIONAL MATCH`, `UNION`, `CALL`, `FOREACH`, `LOAD CSV`, parameters,
-`nodes(p)` / `relationships(p)`, multi-statement transactions and
-concurrency. The engine is single-threaded by design; see
+`OPTIONAL MATCH`, `UNION`, `CALL`, `FOREACH`, `LOAD CSV`, `UNWIND`, `REMOVE`,
+parameters, `nodes(p)` / `relationships(p)`, map literals in `RETURN`, and
+multi-statement transactions. The engine is single-threaded by design; see
 `docs/design.md` for the rationale and `conformance/README.md` for the TCK
 status.
 
