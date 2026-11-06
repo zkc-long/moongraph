@@ -7,7 +7,7 @@
 
 ///|
 pub suberror JsonError {
-  JsonUnexpected(String, Int)
+  JsonUnexpected(String, Int32)
   JsonEof
   JsonDepth
 }
@@ -26,13 +26,17 @@ pub(all) enum Json {
 ///|
 pub struct JsonParser {
   chars : Array[Char]
-  mut pos : Int
-  depth_limit : Int
+  mut pos : Int32
+  depth_limit : Int32
 }
 
 ///|
 pub fn Json::parse(text : StringView) -> Json raise JsonError {
-  let parser = { chars: Array::from_iter(text.iter()), pos: 0, depth_limit: 128 }
+  let parser = {
+    chars: Array::from_iter(text.iter()),
+    pos: 0,
+    depth_limit: 128,
+  }
   parser.skip_ws()
   let value = parser.parse_value(0)
   parser.skip_ws()
@@ -61,7 +65,10 @@ fn JsonParser::peek(self : JsonParser) -> Char raise JsonError {
 }
 
 ///|
-fn JsonParser::parse_value(self : JsonParser, depth : Int) -> Json raise JsonError {
+fn JsonParser::parse_value(
+  self : JsonParser,
+  depth : Int32,
+) -> Json raise JsonError {
   if depth > self.depth_limit {
     raise JsonError::JsonDepth
   }
@@ -86,7 +93,10 @@ fn JsonParser::parse_value(self : JsonParser, depth : Int) -> Json raise JsonErr
 }
 
 ///|
-fn JsonParser::parse_object(self : JsonParser, depth : Int) -> Json raise JsonError {
+fn JsonParser::parse_object(
+  self : JsonParser,
+  depth : Int32,
+) -> Json raise JsonError {
   self.pos = self.pos + 1
   let map : Map[String, Json] = Map([])
   self.skip_ws()
@@ -119,7 +129,10 @@ fn JsonParser::parse_object(self : JsonParser, depth : Int) -> Json raise JsonEr
 }
 
 ///|
-fn JsonParser::parse_array(self : JsonParser, depth : Int) -> Json raise JsonError {
+fn JsonParser::parse_array(
+  self : JsonParser,
+  depth : Int32,
+) -> Json raise JsonError {
   self.pos = self.pos + 1
   let items : Array[Json] = []
   self.skip_ws()
@@ -199,15 +212,15 @@ fn JsonParser::parse_hex4(self : JsonParser) -> Char raise JsonError {
   while i < 4 {
     let c = self.next_char()
     let digit = match c {
-      '0'..='9' => c.to_int() - '0'.to_int()
-      'a'..='f' => c.to_int() - 'a'.to_int() + 10
-      'A'..='F' => c.to_int() - 'A'.to_int() + 10
+      '0'..<='9' => c.to_int() - '0'.to_int()
+      'a'..<='f' => c.to_int() - 'a'.to_int() + 10
+      'A'..<='F' => c.to_int() - 'A'.to_int() + 10
       _ => raise JsonError::JsonUnexpected("bad unicode escape", self.pos)
     }
     value = value * 16 + digit
     i = i + 1
   }
-  Int::unsafe_to_char(value)
+  Int32::unsafe_to_char(value)
 }
 
 ///|
@@ -217,17 +230,14 @@ fn JsonParser::parse_number(self : JsonParser) -> Json raise JsonError {
   while self.pos < self.chars.length() {
     match self.chars[self.pos] {
       '-' | '+' | '.' | 'e' | 'E' => {
-        if self.chars[self.pos] == '.' || self.chars[self.pos] == 'e' || self.chars[self.pos] == 'E' {
+        if self.chars[self.pos] == '.' ||
+          self.chars[self.pos] == 'e' ||
+          self.chars[self.pos] == 'E' {
           is_float = true
         }
         self.pos = self.pos + 1
       }
-      c =>
-        if c >= '0' && c <= '9' {
-          self.pos = self.pos + 1
-        } else {
-          break
-        }
+      c => if c >= '0' && c <= '9' { self.pos = self.pos + 1 } else { break }
     }
   }
   if self.pos == start {
@@ -242,7 +252,10 @@ fn JsonParser::parse_number(self : JsonParser) -> Json raise JsonError {
 }
 
 ///|
-fn JsonParser::expect_literal(self : JsonParser, lit : String) -> Unit raise JsonError {
+fn JsonParser::expect_literal(
+  self : JsonParser,
+  lit : String,
+) -> Unit raise JsonError {
   let chars = Array::from_iter(lit.iter())
   for expected in chars {
     if self.next_char() != expected {
@@ -253,7 +266,7 @@ fn JsonParser::expect_literal(self : JsonParser, lit : String) -> Unit raise Jso
 
 ///|
 /// Four digit lowercase hex encoding of a code unit.
-fn hex4(value : Int) -> String {
+fn hex4(value : Int32) -> String {
   let digits = Array::from_iter("0123456789abcdef".iter())
   let buf = StringBuilder()
   let mut shift = 12

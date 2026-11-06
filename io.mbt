@@ -8,7 +8,7 @@
 
 ///|
 pub suberror LoadError {
-  BadLine(Int, String)
+  BadLine(Int32, String)
   MissingNode(String)
 }
 
@@ -30,7 +30,7 @@ fn strip_bom(text : String) -> String {
 pub fn load_graph(text : String) -> Graph raise LoadError {
   let text = strip_bom(text)
   let graph = Graph::new()
-  let ids : Map[String, Int] = Map([])
+  let ids : Map[String, Int32] = Map([])
   let pending_edges : Array[(String, String, String, Map[String, Value])] = []
   let lines = text.split("\n")
   let mut line_no = 0
@@ -153,7 +153,9 @@ pub fn dump_graph(graph : Graph) -> String {
   let mut e = 0
   while e < graph.edge_count() {
     let edge = graph.edge(e)
-    buf.write_string("{\"kind\":\"edge\",\"from\":\"n\{edge.src}\",\"to\":\"n\{edge.dst}\",\"type\":\"")
+    buf.write_string(
+      "{\"kind\":\"edge\",\"from\":\"n\{edge.src}\",\"to\":\"n\{edge.dst}\",\"type\":\"",
+    )
     buf.write_string(escape_json_string(edge.etype))
     buf.write_string("\",\"props\":")
     buf.write_string(props_to_json(edge.props))
@@ -202,7 +204,7 @@ fn props_to_json(props : Map[String, Value]) -> String {
 /// from each dependent to the module it depends on.
 pub fn load_registry_records(text : String) -> Graph raise LoadError {
   let graph = Graph::new()
-  let ids : Map[String, Int] = Map([])
+  let ids : Map[String, Int32] = Map([])
   let pending : Array[(String, String)] = []
   let lines = text.split("\n")
   let mut line_no = 0
@@ -262,7 +264,9 @@ pub fn load_registry_records(text : String) -> Graph raise LoadError {
       }
     }
     let dst = ids[target]
-    ignore(graph.add_edge("DEPENDS_ON", src, dst, Map([]))) catch { _ => () }
+    ignore(graph.add_edge("DEPENDS_ON", src, dst, Map([]))) catch {
+      _ => ()
+    }
   }
   graph
 }

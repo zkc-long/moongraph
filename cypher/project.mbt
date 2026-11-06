@@ -15,7 +15,7 @@ fn is_aggregate(expr : Expr) -> Bool {
 }
 
 ///|
-pub fn QueryResult::column_index(self : QueryResult, name : String) -> Int? {
+pub fn QueryResult::column_index(self : QueryResult, name : String) -> Int32? {
   let mut i = 0
   for col in self.columns {
     if col == name {
@@ -84,7 +84,7 @@ fn project(
     }
     result_rows = kept
   }
-  { columns, rows: result_rows.map(fn(row) { row.0 }) }
+  { columns, rows: result_rows.map(fn(row) { row.0 }), }
 }
 
 ///|
@@ -328,7 +328,7 @@ fn compare_keys(
   a : Array[@mg.Value],
   b : Array[@mg.Value],
   order : Array[OrderItem],
-) -> Int {
+) -> Int32 {
   let mut i = 0
   while i < a.length() && i < b.length() {
     let cmp = a[i].compare(b[i])
@@ -343,7 +343,7 @@ fn compare_keys(
 ///|
 /// Render the result as an aligned text table.
 pub fn QueryResult::to_table(self : QueryResult) -> String {
-  let widths : Array[Int] = []
+  let widths : Array[Int32] = []
   for col in self.columns {
     widths.push(col.char_length())
   }
@@ -402,7 +402,7 @@ pub fn QueryResult::to_table(self : QueryResult) -> String {
 }
 
 ///|
-fn pad_to(buf : StringBuilder, width : Int, target : Int) -> Unit {
+fn pad_to(buf : StringBuilder, width : Int32, target : Int32) -> Unit {
   let mut k = width
   while k < target {
     buf.write_char(' ')

@@ -108,7 +108,9 @@ async fn main {
           // Re-serialising validates the whole file end to end.
           let text = @mg.dump_graph(graph)
           let lines = text.split("\n").length() - 1
-          println("ok: \{graph.node_count()} nodes, \{graph.edge_count()} edges (\{lines} records)")
+          println(
+            "ok: \{graph.node_count()} nodes, \{graph.edge_count()} edges (\{lines} records)",
+          )
         }
         None => ()
       }
@@ -151,7 +153,11 @@ async fn main {
           let start = @bench.monotonic_clock_start()
           let mut i = 0L
           while i < iterations {
-            ignore(@cypher.run(graph, args[3]) catch { _ => abort("bad query") })
+            ignore(
+              @cypher.run(graph, args[3]) catch {
+                _ => abort("bad query")
+              },
+            )
             i = i + 1
           }
           let elapsed = @bench.monotonic_clock_end(start)

@@ -1,0 +1,119 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moongraph"
+
+// Values
+pub fn compare_strings(String, String) -> Int32
+
+pub fn dump_graph(Graph) -> String
+
+pub fn escape_json_string(String) -> String
+
+pub fn json_to_value(Json) -> Value
+
+pub fn load_graph(String) -> Graph raise LoadError
+
+pub fn load_registry_records(String) -> Graph raise LoadError
+
+pub fn value_to_json(Value) -> Json
+
+// Errors
+pub suberror GraphError {
+  EdgeNodeMissing(Int32)
+}
+
+pub suberror JsonError {
+  JsonUnexpected(String, Int32)
+  JsonEof
+  JsonDepth
+}
+
+pub suberror LoadError {
+  BadLine(Int32, String)
+  MissingNode(String)
+}
+
+// Types and methods
+pub struct Edge {
+  id : Int32
+  etype : String
+  src : Int32
+  dst : Int32
+  props : Map[String, Value]
+}
+pub fn Edge::prop(Self, String) -> Value
+
+pub struct Graph {
+  nodes : Array[Node]
+  edges : Array[Edge]
+  out_edges : Array[Array[Int32]]
+  in_edges : Array[Array[Int32]]
+  label_index : Map[String, Array[Int32]]
+  prop_index : Map[String, Map[String, Array[Int32]]]
+}
+pub fn Graph::add_edge(Self, String, Int32, Int32, Map[String, Value]) -> Int32 raise GraphError
+pub fn Graph::add_node(Self, Array[String], Map[String, Value]) -> Int32
+pub fn Graph::edge(Self, Int32) -> Edge
+pub fn Graph::edge_count(Self) -> Int32
+pub fn Graph::edge_types(Self) -> Array[String]
+pub fn Graph::in_edge_ids(Self, Int32) -> Array[Int32]
+pub fn Graph::in_neighbors(Self, Int32) -> Array[(Int32, Int32)]
+pub fn Graph::labels(Self) -> Array[String]
+pub fn Graph::lookup_property(Self, String, Value) -> Array[Int32]?
+pub fn Graph::new() -> Self
+pub fn Graph::node(Self, Int32) -> Node
+pub fn Graph::node_count(Self) -> Int32
+pub fn Graph::nodes_with_label(Self, String) -> Array[Int32]
+pub fn Graph::out_edge_ids(Self, Int32) -> Array[Int32]
+pub fn Graph::out_neighbors(Self, Int32) -> Array[(Int32, Int32)]
+
+pub(all) enum Json {
+  JNull
+  JBool(Bool)
+  JInt(Int64)
+  JDouble(Double)
+  JStr(String)
+  JList(Array[Json])
+  JObj(Map[String, Json])
+}
+pub fn Json::parse(StringView) -> Self raise JsonError
+pub fn Json::to_string(Self) -> String
+
+pub struct JsonParser {
+  chars : Array[Char]
+  mut pos : Int32
+  depth_limit : Int32
+}
+
+pub struct Node {
+  id : Int32
+  labels : Array[String]
+  props : Map[String, Value]
+}
+pub fn Node::has_label(Self, String) -> Bool
+pub fn Node::id(Self) -> Int32
+pub fn Node::prop(Self, String) -> Value
+
+pub(all) enum Value {
+  VNull
+  VBool(Bool)
+  VInt(Int64)
+  VDouble(Double)
+  VStr(String)
+  VList(Array[Value])
+}
+pub fn Value::as_double(Self) -> Double
+pub fn Value::as_int64(Self) -> Int64
+pub fn Value::as_string(Self) -> String
+pub fn Value::compare(Self, Self) -> Int32
+pub fn Value::equal_value(Self, Self) -> Bool
+pub fn Value::is_null(Self) -> Bool
+pub fn Value::is_number(Self) -> Bool
+pub fn Value::null() -> Self
+pub fn Value::of_int(Int64) -> Self
+pub fn Value::of_str(String) -> Self
+pub fn Value::to_display(Self) -> String
+pub fn Value::to_literal(Self) -> String
+
+// Type aliases
+
+// Traits

@@ -8,22 +8,22 @@
 
 ///|
 pub struct Node {
-  id : Int
+  id : Int32
   labels : Array[String]
   props : Map[String, Value]
 }
 
 ///|
 pub struct Edge {
-  id : Int
+  id : Int32
   etype : String
-  src : Int
-  dst : Int
+  src : Int32
+  dst : Int32
   props : Map[String, Value]
 }
 
 ///|
-pub fn Node::id(self : Node) -> Int {
+pub fn Node::id(self : Node) -> Int32 {
   self.id
 }
 
@@ -55,7 +55,7 @@ pub fn Edge::prop(self : Edge, key : String) -> Value {
 
 ///|
 pub suberror GraphError {
-  EdgeNodeMissing(Int)
+  EdgeNodeMissing(Int32)
 }
 
 ///|
@@ -63,10 +63,10 @@ pub suberror GraphError {
 pub struct Graph {
   nodes : Array[Node]
   edges : Array[Edge]
-  out_edges : Array[Array[Int]]
-  in_edges : Array[Array[Int]]
-  label_index : Map[String, Array[Int]]
-  prop_index : Map[String, Map[String, Array[Int]]]
+  out_edges : Array[Array[Int32]]
+  in_edges : Array[Array[Int32]]
+  label_index : Map[String, Array[Int32]]
+  prop_index : Map[String, Map[String, Array[Int32]]]
 }
 
 ///|
@@ -82,22 +82,22 @@ pub fn Graph::new() -> Graph {
 }
 
 ///|
-pub fn Graph::node_count(self : Graph) -> Int {
+pub fn Graph::node_count(self : Graph) -> Int32 {
   self.nodes.length()
 }
 
 ///|
-pub fn Graph::edge_count(self : Graph) -> Int {
+pub fn Graph::edge_count(self : Graph) -> Int32 {
   self.edges.length()
 }
 
 ///|
-pub fn Graph::node(self : Graph, id : Int) -> Node {
+pub fn Graph::node(self : Graph, id : Int32) -> Node {
   self.nodes[id]
 }
 
 ///|
-pub fn Graph::edge(self : Graph, id : Int) -> Edge {
+pub fn Graph::edge(self : Graph, id : Int32) -> Edge {
   self.edges[id]
 }
 
@@ -107,9 +107,9 @@ pub fn Graph::add_node(
   self : Graph,
   labels : Array[String],
   props : Map[String, Value],
-) -> Int {
+) -> Int32 {
   let id = self.nodes.length()
-  self.nodes.push({ id, labels, props })
+  self.nodes.push({ id, labels, props, })
   self.out_edges.push([])
   self.in_edges.push([])
   for label in labels {
@@ -124,7 +124,7 @@ pub fn Graph::add_node(
       let by_key = match self.prop_index.get(key) {
         Some(m) => m
         None => {
-          let m : Map[String, Array[Int]] = Map([])
+          let m : Map[String, Array[Int32]] = Map([])
           self.prop_index[key] = m
           m
         }
@@ -143,10 +143,10 @@ pub fn Graph::add_node(
 pub fn Graph::add_edge(
   self : Graph,
   etype : String,
-  src : Int,
-  dst : Int,
+  src : Int32,
+  dst : Int32,
   props : Map[String, Value],
-) -> Int raise GraphError {
+) -> Int32 raise GraphError {
   let n = self.nodes.length()
   if src < 0 || src >= n {
     raise GraphError::EdgeNodeMissing(src)
@@ -155,26 +155,29 @@ pub fn Graph::add_edge(
     raise GraphError::EdgeNodeMissing(dst)
   }
   let id = self.edges.length()
-  self.edges.push({ id, etype, src, dst, props })
+  self.edges.push({ id, etype, src, dst, props, })
   self.out_edges[src].push(id)
   self.in_edges[dst].push(id)
   id
 }
 
 ///|
-pub fn Graph::out_edge_ids(self : Graph, node : Int) -> Array[Int] {
+pub fn Graph::out_edge_ids(self : Graph, node : Int32) -> Array[Int32] {
   self.out_edges[node]
 }
 
 ///|
-pub fn Graph::in_edge_ids(self : Graph, node : Int) -> Array[Int] {
+pub fn Graph::in_edge_ids(self : Graph, node : Int32) -> Array[Int32] {
   self.in_edges[node]
 }
 
 ///|
 /// Outgoing neighbours together with the edges that reach them.
-pub fn Graph::out_neighbors(self : Graph, node : Int) -> Array[(Int, Int)] {
-  let result : Array[(Int, Int)] = []
+pub fn Graph::out_neighbors(
+  self : Graph,
+  node : Int32,
+) -> Array[(Int32, Int32)] {
+  let result : Array[(Int32, Int32)] = []
   for edge_id in self.out_edges[node] {
     result.push((self.edges[edge_id].dst, edge_id))
   }
@@ -183,8 +186,8 @@ pub fn Graph::out_neighbors(self : Graph, node : Int) -> Array[(Int, Int)] {
 
 ///|
 /// Incoming neighbours together with the edges that reach this node.
-pub fn Graph::in_neighbors(self : Graph, node : Int) -> Array[(Int, Int)] {
-  let result : Array[(Int, Int)] = []
+pub fn Graph::in_neighbors(self : Graph, node : Int32) -> Array[(Int32, Int32)] {
+  let result : Array[(Int32, Int32)] = []
   for edge_id in self.in_edges[node] {
     result.push((self.edges[edge_id].src, edge_id))
   }
@@ -194,7 +197,7 @@ pub fn Graph::in_neighbors(self : Graph, node : Int) -> Array[(Int, Int)] {
 ///|
 /// Node ids carrying `label`, in insertion order.
 /// Falls back to a scan for labels that were never indexed.
-pub fn Graph::nodes_with_label(self : Graph, label : String) -> Array[Int] {
+pub fn Graph::nodes_with_label(self : Graph, label : String) -> Array[Int32] {
   match self.label_index.get(label) {
     Some(ids) => ids.copy()
     None => []
@@ -208,7 +211,7 @@ pub fn Graph::lookup_property(
   self : Graph,
   key : String,
   value : Value,
-) -> Array[Int]? {
+) -> Array[Int32]? {
   let encoded = encode_index_key(value)
   if encoded == "" {
     return None

@@ -9,18 +9,18 @@
 ///|
 pub struct Binding {
   vals : Map[String, @mg.Value]
-  nodes : Map[String, Int]
-  rels : Map[String, Int]
+  nodes : Map[String, Int32]
+  rels : Map[String, Int32]
 }
 
 ///|
 fn empty_binding() -> Binding {
-  { vals: Map([]), nodes: Map([]), rels: Map([]) }
+  { vals: Map([]), nodes: Map([]), rels: Map([]), }
 }
 
 ///|
 fn Binding::clone(self : Binding) -> Binding {
-  { vals: self.vals.copy(), nodes: self.nodes.copy(), rels: self.rels.copy() }
+  { vals: self.vals.copy(), nodes: self.nodes.copy(), rels: self.rels.copy(), }
 }
 
 ///|
@@ -30,12 +30,12 @@ pub struct QueryResult {
 }
 
 ///|
-pub fn QueryResult::row_count(self : QueryResult) -> Int {
+pub fn QueryResult::row_count(self : QueryResult) -> Int32 {
   self.rows.length()
 }
 
 ///|
-pub fn QueryResult::column_count(self : QueryResult) -> Int {
+pub fn QueryResult::column_count(self : QueryResult) -> Int32 {
   self.columns.length()
 }
 
@@ -95,8 +95,8 @@ fn match_pattern(
 fn expand_hops(
   graph : @mg.Graph,
   hops : Array[Hop],
-  index : Int,
-  current : Int,
+  index : Int32,
+  current : Int32,
   binding : Binding,
   out : Array[Binding],
 ) -> Unit {
@@ -124,11 +124,15 @@ fn expand_hops(
 /// Follow one relationship pattern from `node`, returning `(target, rel_ids)`.
 /// `rel_ids` has one entry for a single hop and one per traversed edge for a
 /// variable length hop.
-fn follow(graph : @mg.Graph, node : Int, rel : RelPat) -> Array[(Int, Array[Int])] {
+fn follow(
+  graph : @mg.Graph,
+  node : Int32,
+  rel : RelPat,
+) -> Array[(Int32, Array[Int32])] {
   let single = rel.min_hops == 1 && rel.max_hops == 1
   if single {
     let edges = neighbors(graph, node, rel)
-    let result : Array[(Int, Array[Int])] = []
+    let result : Array[(Int32, Array[Int32])] = []
     for (target, edge_id) in edges {
       result.push((target, [edge_id]))
     }
@@ -137,11 +141,11 @@ fn follow(graph : @mg.Graph, node : Int, rel : RelPat) -> Array[(Int, Array[Int]
   // Variable length: breadth first, bounded by max_hops (-1 = unbounded but
   // still bounded by the node count to guarantee termination).
   let limit = if rel.max_hops < 0 { graph.node_count() } else { rel.max_hops }
-  let result : Array[(Int, Array[Int])] = []
-  let mut frontier : Array[(Int, Array[Int])] = [(node, [])]
+  let result : Array[(Int32, Array[Int32])] = []
+  let mut frontier : Array[(Int32, Array[Int32])] = [(node, [])]
   let mut depth = 0
   while depth < limit && frontier.length() > 0 {
-    let next : Array[(Int, Array[Int])] = []
+    let next : Array[(Int32, Array[Int32])] = []
     for (current, path) in frontier {
       for (target, edge_id) in neighbors(graph, current, rel) {
         let new_path = path.copy()
@@ -159,9 +163,13 @@ fn follow(graph : @mg.Graph, node : Int, rel : RelPat) -> Array[(Int, Array[Int]
 }
 
 ///|
-fn neighbors(graph : @mg.Graph, node : Int, rel : RelPat) -> Array[(Int, Int)] {
-  let result : Array[(Int, Int)] = []
-  let add = fn(pairs : Array[(Int, Int)]) {
+fn neighbors(
+  graph : @mg.Graph,
+  node : Int32,
+  rel : RelPat,
+) -> Array[(Int32, Int32)] {
+  let result : Array[(Int32, Int32)] = []
+  let add = fn(pairs : Array[(Int32, Int32)]) {
     for (target, edge_id) in pairs {
       if rel.types.length() == 0 || type_matches(graph, edge_id, rel.types) {
         result.push((target, edge_id))
@@ -180,7 +188,11 @@ fn neighbors(graph : @mg.Graph, node : Int, rel : RelPat) -> Array[(Int, Int)] {
 }
 
 ///|
-fn type_matches(graph : @mg.Graph, edge_id : Int, types : Array[String]) -> Bool {
+fn type_matches(
+  graph : @mg.Graph,
+  edge_id : Int32,
+  types : Array[String],
+) -> Bool {
   let etype = graph.edge(edge_id).etype
   for t in types {
     if t == etype {
@@ -195,13 +207,13 @@ fn start_candidates(
   graph : @mg.Graph,
   node : NodePat,
   binding : Binding,
-) -> Array[Int] {
+) -> Array[Int32] {
   match binding.nodes.get(node.variable) {
     Some(id) => [id]
     None =>
       if node.labels.length() > 0 {
-        let result : Array[Int] = []
-        let seen : Map[Int, Bool] = Map([])
+        let result : Array[Int32] = []
+        let seen : Map[Int32, Bool] = Map([])
         for label in node.labels {
           for id in graph.nodes_with_label(label) {
             if !seen.get(id).unwrap_or(false) {
@@ -212,7 +224,7 @@ fn start_candidates(
         }
         result
       } else {
-        let result : Array[Int] = []
+        let result : Array[Int32] = []
         let mut i = 0
         while i < graph.node_count() {
           result.push(i)
@@ -226,17 +238,14 @@ fn start_candidates(
 ///|
 fn bind_node(
   node : NodePat,
-  id : Int,
+  id : Int32,
   binding : Binding,
   graph : @mg.Graph,
 ) -> Binding? {
   let mut next = binding
   if node.variable != "" {
     match binding.nodes.get(node.variable) {
-      Some(existing) =>
-        if existing != id {
-          return None
-        }
+      Some(existing) => if existing != id { return None }
       None => {
         next = next.clone()
         next.nodes[node.variable] = id
@@ -307,7 +316,8 @@ fn eval(expr : Expr, graph : @mg.Graph, binding : Binding) -> @mg.Value {
       let is_null = eval(inner, graph, binding) is @mg.VNull
       @mg.VBool(if negated { !is_null } else { is_null })
     }
-    EList(items) => @mg.VList(items.map(fn(item) { eval(item, graph, binding) }))
+    EList(items) =>
+      @mg.VList(items.map(fn(item) { eval(item, graph, binding) }))
     EBin(op, left, right) => eval_binary(op, left, right, graph, binding)
     EFunc(name, args) => eval_function(name, args, graph, binding)
   }

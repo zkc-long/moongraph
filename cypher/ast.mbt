@@ -31,8 +31,8 @@ pub struct RelPat {
   variable : String
   types : Array[String]
   dir : Dir
-  min_hops : Int
-  max_hops : Int // -1 means unbounded
+  min_hops : Int32
+  max_hops : Int32 // -1 means unbounded
 }
 
 ///|
@@ -66,8 +66,8 @@ pub struct Query {
   items : Array[ReturnItem]
   distinct : Bool
   order : Array[OrderItem]
-  skip : Int?
-  limit : Int?
+  skip : Int32?
+  limit : Int32?
 }
 
 ///|
@@ -79,7 +79,8 @@ pub fn expr_text(expr : Expr) -> String {
     EProp(base, key) => expr_text(base) + "." + key
     EBin(op, l, r) => expr_text(l) + " " + op + " " + expr_text(r)
     ENot(e) => "NOT " + expr_text(e)
-    EIsNull(e, negated) => expr_text(e) + (if negated { " IS NOT NULL" } else { " IS NULL" })
+    EIsNull(e, negated) =>
+      expr_text(e) + (if negated { " IS NOT NULL" } else { " IS NULL" })
     EFunc(name, args) => {
       let buf = StringBuilder()
       buf.write_string(name)

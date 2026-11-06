@@ -1,0 +1,172 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moongraph/cypher"
+
+// Values
+pub fn expr_text(Expr) -> String
+
+pub fn parse_query(String) -> Query raise ParseError
+
+pub fn run(@moongraph.Graph, String) -> QueryResult raise ParseError
+
+pub fn tokenize(String) -> Array[Token] raise LexError
+
+// Errors
+pub suberror LexError {
+  UnexpectedChar(Char, Int32)
+  UnterminatedString(Int32)
+  BadNumber(String, Int32)
+}
+
+pub suberror ParseError {
+  UnexpectedToken(String, Int32)
+  UnexpectedEnd
+  BadRange(Int32)
+}
+
+// Types and methods
+pub struct Binding {
+  vals : Map[String, @moongraph.Value]
+  nodes : Map[String, Int32]
+  rels : Map[String, Int32]
+}
+
+pub enum Dir {
+  Out
+  In
+  Both
+}
+
+pub enum Expr {
+  ELit(@moongraph.Value)
+  EVar(String)
+  EProp(Expr, String)
+  EBin(String, Expr, Expr)
+  ENot(Expr)
+  EIsNull(Expr, Bool)
+  EFunc(String, Array[Expr])
+  EList(Array[Expr])
+}
+
+pub struct Hop {
+  rel : RelPat
+  node : NodePat
+}
+
+pub struct NodePat {
+  variable : String
+  labels : Array[String]
+  props : Array[(String, Expr)]
+}
+
+pub struct OrderItem {
+  expr : Expr
+  descending : Bool
+}
+
+pub struct Parser {
+  tokens : Array[Token]
+  mut pos : Int32
+}
+
+pub struct PathPat {
+  start : NodePat
+  hops : Array[Hop]
+}
+
+pub struct Query {
+  patterns : Array[PathPat]
+  where_ : Expr?
+  items : Array[ReturnItem]
+  distinct : Bool
+  order : Array[OrderItem]
+  skip : Int32?
+  limit : Int32?
+}
+
+pub struct QueryResult {
+  columns : Array[String]
+  rows : Array[Array[@moongraph.Value]]
+}
+pub fn QueryResult::column_count(Self) -> Int32
+pub fn QueryResult::column_index(Self, String) -> Int32?
+pub fn QueryResult::row_count(Self) -> Int32
+pub fn QueryResult::to_json(Self) -> String
+pub fn QueryResult::to_table(Self) -> String
+
+pub struct RelPat {
+  variable : String
+  types : Array[String]
+  dir : Dir
+  min_hops : Int32
+  max_hops : Int32
+}
+
+pub struct ReturnItem {
+  expr : Expr
+  col : String
+}
+
+#derive(Eq)
+pub enum TokKind {
+  Ident
+  Str
+  Int
+  Float
+  LParen
+  RParen
+  LBracket
+  RBracket
+  LBrace
+  RBrace
+  Colon
+  Comma
+  Dot
+  Pipe
+  Semicolon
+  Percent
+  Plus
+  Minus
+  Star
+  Slash
+  Eq
+  Neq
+  Lt
+  Le
+  Gt
+  Ge
+  ArrowRight
+  ArrowLeft
+  Eof
+  KwMatch
+  KwWhere
+  KwReturn
+  KwOrder
+  KwBy
+  KwSkip
+  KwLimit
+  KwAs
+  KwDistinct
+  KwAnd
+  KwOr
+  KwNot
+  KwIn
+  KwIs
+  KwNull
+  KwTrue
+  KwFalse
+  KwAsc
+  KwDesc
+  KwStartsWith
+  KwEndsWith
+  KwContains
+}
+
+pub struct Token {
+  kind : TokKind
+  text : String
+  pos : Int32
+}
+
+// Type aliases
+
+// Traits

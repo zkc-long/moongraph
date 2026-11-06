@@ -131,13 +131,7 @@ pub fn Value::compare(self : Value, other : Value) -> Int32 {
   if self.is_number() && other.is_number() {
     let a = self.as_double()
     let b = other.as_double()
-    return if a < b {
-      -1
-    } else if a > b {
-      1
-    } else {
-      0
-    }
+    return if a < b { -1 } else if a > b { 1 } else { 0 }
   }
   let ra = self.rank()
   let rb = other.rank()
@@ -146,14 +140,7 @@ pub fn Value::compare(self : Value, other : Value) -> Int32 {
   }
   match (self, other) {
     (VNull, VNull) => 0
-    (VBool(a), VBool(b)) =>
-      if a == b {
-        0
-      } else if a {
-        1
-      } else {
-        -1
-      }
+    (VBool(a), VBool(b)) => if a == b { 0 } else if a { 1 } else { -1 }
     (VStr(a), VStr(b)) => compare_strings(a, b)
     (VList(a), VList(b)) => {
       let n = if a.length() < b.length() { a.length() } else { b.length() }

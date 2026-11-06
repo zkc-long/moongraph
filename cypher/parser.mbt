@@ -11,22 +11,22 @@
 
 ///|
 pub suberror ParseError {
-  UnexpectedToken(String, Int)
+  UnexpectedToken(String, Int32)
   UnexpectedEnd
-  BadRange(Int)
+  BadRange(Int32)
 }
 
 ///|
 pub struct Parser {
   tokens : Array[Token]
-  mut pos : Int
+  mut pos : Int32
 }
 
 ///|
 /// Parse a Cypher query. Lexer failures are reported as parse errors so that
 /// callers only have to deal with a single error type.
 pub fn parse_query(source : String) -> Query raise ParseError {
-  let tokens = try tokenize(source) catch {
+  let tokens = tokenize(source) catch {
     LexError::UnexpectedChar(c, pos) =>
       raise ParseError::UnexpectedToken("unexpected character \{c}", pos)
     LexError::UnterminatedString(pos) =>
@@ -34,7 +34,7 @@ pub fn parse_query(source : String) -> Query raise ParseError {
     LexError::BadNumber(_, pos) =>
       raise ParseError::UnexpectedToken("bad number", pos)
   }
-  let parser : Parser = { tokens, pos: 0 }
+  let parser : Parser = { tokens, pos: 0, }
   parser.query()
 }
 
@@ -64,7 +64,11 @@ fn Parser::take(self : Parser) -> Token {
 }
 
 ///|
-fn Parser::expect(self : Parser, kind : TokKind, what : String) -> Unit raise ParseError {
+fn Parser::expect(
+  self : Parser,
+  kind : TokKind,
+  what : String,
+) -> Unit raise ParseError {
   let token = self.peek()
   if token.kind == kind {
     self.advance()
@@ -75,7 +79,11 @@ fn Parser::expect(self : Parser, kind : TokKind, what : String) -> Unit raise Pa
 
 ///|
 /// Expect a token and return its text (used for identifiers and labels).
-fn Parser::expect_text(self : Parser, kind : TokKind, what : String) -> String raise ParseError {
+fn Parser::expect_text(
+  self : Parser,
+  kind : TokKind,
+  what : String,
+) -> String raise ParseError {
   self.expect(kind, what)
   self.tokens[self.pos - 1].text
 }
@@ -139,11 +147,11 @@ fn Parser::query(self : Parser) -> Query raise ParseError {
   if !self.at(Eof) {
     raise ParseError::UnexpectedToken("end of query", self.peek().pos)
   }
-  { patterns, where_, items, distinct, order, skip, limit }
+  { patterns, where_, items, distinct, order, skip, limit, }
 }
 
 ///|
-fn Parser::int_literal(self : Parser) -> Int raise ParseError {
+fn Parser::int_literal(self : Parser) -> Int32 raise ParseError {
   let token = self.peek()
   match token.kind {
     Int => {
@@ -165,7 +173,7 @@ fn Parser::return_item(self : Parser) -> ReturnItem raise ParseError {
   } else {
     expr_text(expr)
   }
-  { expr, col }
+  { expr, col, }
 }
 
 ///|
@@ -180,7 +188,7 @@ fn Parser::order_item(self : Parser) -> OrderItem raise ParseError {
   } else {
     false
   }
-  { expr, descending }
+  { expr, descending, }
 }
 
 ///|
@@ -189,31 +197,23 @@ fn Parser::pattern(self : Parser) -> PathPat raise ParseError {
   let hops : Array[Hop] = []
   while self.at(Minus) || self.at(ArrowLeft) {
     let (rel, node) = self.rel_and_node()
-    hops.push({ rel, node })
+    hops.push({ rel, node, })
   }
-  { start, hops }
+  { start, hops, }
 }
 
 ///|
 fn Parser::node_pattern(self : Parser) -> NodePat raise ParseError {
   self.expect(LParen, "(")
-  let variable = if self.at(Ident) {
-    self.take().text
-  } else {
-    ""
-  }
+  let variable = if self.at(Ident) { self.take().text } else { "" }
   let labels : Array[String] = []
   while self.at(Colon) {
     self.advance()
     labels.push(self.expect_text(Ident, "label"))
   }
-  let props = if self.at(LBrace) {
-    self.map_literal()
-  } else {
-    []
-  }
+  let props = if self.at(LBrace) { self.map_literal() } else { [] }
   self.expect(RParen, ")")
-  { variable, labels, props }
+  { variable, labels, props, }
 }
 
 ///|
@@ -289,12 +289,12 @@ fn Parser::rel_and_node(self : Parser) -> (RelPat, NodePat) raise ParseError {
       }
   }
   let node = self.node_pattern()
-  ({ variable, types, dir, min_hops, max_hops }, node)
+  ({ variable, types, dir, min_hops, max_hops, }, node)
 }
 
 ///|
 /// Parse the `*`, `*n`, `*a..b`, `*a..`, `*..b` range after a star.
-fn Parser::varlen_range(self : Parser) -> (Int, Int) raise ParseError {
+fn Parser::varlen_range(self : Parser) -> (Int32, Int32) raise ParseError {
   let mut lo = 1
   let mut hi = -1
   if self.at(Int) {
@@ -355,6 +355,18 @@ fn Parser::not_expr(self : Parser) -> Expr raise ParseError {
 ///|
 fn Parser::comparison(self : Parser) -> Expr raise ParseError {
   let left = self.additive()
+  // `STARTS WITH` / `ENDS WITH` are two keywords, consume both.
+  if self.at(KwStartsWith) || self.at(KwEndsWith) {
+    let op = if self.at(KwStartsWith) { "STARTS WITH" } else { "ENDS WITH" }
+    self.advance()
+    let token = self.peek()
+    if token.kind == Ident && token.text == "WITH" {
+      self.advance()
+    } else {
+      raise ParseError::UnexpectedToken("WITH", token.pos)
+    }
+    return EBin(op, left, self.additive())
+  }
   let op = match self.peek().kind {
     Eq => "="
     Neq => "<>"
@@ -364,8 +376,6 @@ fn Parser::comparison(self : Parser) -> Expr raise ParseError {
     Ge => ">="
     KwIn => "IN"
     KwContains => "CONTAINS"
-    KwStartsWith => "STARTS WITH"
-    KwEndsWith => "ENDS WITH"
     KwIs => {
       self.advance()
       let negated = if self.at(KwNot) {
@@ -380,13 +390,7 @@ fn Parser::comparison(self : Parser) -> Expr raise ParseError {
     _ => return left
   }
   self.advance()
-  if op == "STARTS WITH" {
-    self.expect(KwStartsWith, "STARTS WITH")
-  } else if op == "ENDS WITH" {
-    self.expect(KwEndsWith, "ENDS WITH")
-  }
-  let right = self.additive()
-  EBin(op, left, right)
+  EBin(op, left, self.additive())
 }
 
 ///|

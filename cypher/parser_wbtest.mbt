@@ -2,7 +2,9 @@
 
 ///|
 test "parser/simple-match" {
-  let q = parse_query("MATCH (n:Person) RETURN n") catch { _ => fail("should parse") }
+  let q = parse_query("MATCH (n:Person) RETURN n") catch {
+    _ => fail("should parse")
+  }
   assert_eq(q.patterns.length(), 1)
   assert_eq(q.patterns[0].start.variable, "n")
   assert_eq(q.patterns[0].start.labels, ["Person"])
@@ -44,7 +46,9 @@ test "parser/variable-length-range" {
 
 ///|
 test "parser/unbounded-variable-length" {
-  let q = parse_query("MATCH (a)-[:R*]->(b) RETURN a") catch { _ => fail("should parse") }
+  let q = parse_query("MATCH (a)-[:R*]->(b) RETURN a") catch {
+    _ => fail("should parse")
+  }
   let rel = q.patterns[0].hops[0].rel
   assert_eq(rel.min_hops, 1)
   assert_eq(rel.max_hops, -1)

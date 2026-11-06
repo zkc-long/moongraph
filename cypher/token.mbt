@@ -64,14 +64,14 @@ pub enum TokKind {
 pub struct Token {
   kind : TokKind
   text : String
-  pos : Int
+  pos : Int32
 }
 
 ///|
 pub suberror LexError {
-  UnexpectedChar(Char, Int)
-  UnterminatedString(Int)
-  BadNumber(String, Int)
+  UnexpectedChar(Char, Int32)
+  UnterminatedString(Int32)
+  BadNumber(String, Int32)
 }
 
 ///|
@@ -138,7 +138,7 @@ pub fn tokenize(source : String) -> Array[Token] raise LexError {
         j = j + 1
       }
       let word = String::from_array(chars[i:j])
-      tokens.push({ kind: keyword_kind(word), text: word, pos: start })
+      tokens.push({ kind: keyword_kind(word), text: word, pos: start, })
       i = j
       continue
     }
@@ -156,7 +156,15 @@ pub fn tokenize(source : String) -> Array[Token] raise LexError {
         }
       }
       let text = String::from_array(chars[i:j])
-      tokens.push({ kind: if is_float { Float } else { Int }, text, pos: start })
+      tokens.push({
+        kind: if is_float {
+          Float
+        } else {
+          Int
+        },
+        text,
+        pos: start,
+      })
       i = j
       continue
     }
@@ -192,125 +200,120 @@ pub fn tokenize(source : String) -> Array[Token] raise LexError {
       if !closed {
         raise LexError::UnterminatedString(start)
       }
-      tokens.push({ kind: Str, text: buf.to_string(), pos: start })
+      tokens.push({ kind: Str, text: buf.to_string(), pos: start, })
       i = j
       continue
     }
     match c {
       '(' => {
-        tokens.push({ kind: LParen, text: "(", pos: start })
+        tokens.push({ kind: LParen, text: "(", pos: start, })
         i = i + 1
       }
       ')' => {
-        tokens.push({ kind: RParen, text: ")", pos: start })
+        tokens.push({ kind: RParen, text: ")", pos: start, })
         i = i + 1
       }
       '[' => {
-        tokens.push({ kind: LBracket, text: "[", pos: start })
+        tokens.push({ kind: LBracket, text: "[", pos: start, })
         i = i + 1
       }
       ']' => {
-        tokens.push({ kind: RBracket, text: "]", pos: start })
+        tokens.push({ kind: RBracket, text: "]", pos: start, })
         i = i + 1
       }
       '{' => {
-        tokens.push({ kind: LBrace, text: "{", pos: start })
+        tokens.push({ kind: LBrace, text: "{", pos: start, })
         i = i + 1
       }
       '}' => {
-        tokens.push({ kind: RBrace, text: "}", pos: start })
+        tokens.push({ kind: RBrace, text: "}", pos: start, })
         i = i + 1
       }
       ':' => {
-        tokens.push({ kind: Colon, text: ":", pos: start })
+        tokens.push({ kind: Colon, text: ":", pos: start, })
         i = i + 1
       }
       ',' => {
-        tokens.push({ kind: Comma, text: ",", pos: start })
+        tokens.push({ kind: Comma, text: ",", pos: start, })
         i = i + 1
       }
-      '.' => {
+      '.' =>
         // `..` is the range separator inside variable length relationships.
         if i + 1 < n && chars[i + 1] == '.' {
-          tokens.push({ kind: Dot, text: "..", pos: start })
+          tokens.push({ kind: Dot, text: "..", pos: start, })
           i = i + 2
         } else {
-          tokens.push({ kind: Dot, text: ".", pos: start })
+          tokens.push({ kind: Dot, text: ".", pos: start, })
           i = i + 1
         }
-      }
       '|' => {
-        tokens.push({ kind: Pipe, text: "|", pos: start })
+        tokens.push({ kind: Pipe, text: "|", pos: start, })
         i = i + 1
       }
       ';' => {
-        tokens.push({ kind: Semicolon, text: ";", pos: start })
+        tokens.push({ kind: Semicolon, text: ";", pos: start, })
         i = i + 1
       }
       '%' => {
-        tokens.push({ kind: Percent, text: "%", pos: start })
+        tokens.push({ kind: Percent, text: "%", pos: start, })
         i = i + 1
       }
       '+' => {
-        tokens.push({ kind: Plus, text: "+", pos: start })
+        tokens.push({ kind: Plus, text: "+", pos: start, })
         i = i + 1
       }
       '*' => {
-        tokens.push({ kind: Star, text: "*", pos: start })
+        tokens.push({ kind: Star, text: "*", pos: start, })
         i = i + 1
       }
       '/' => {
-        tokens.push({ kind: Slash, text: "/", pos: start })
+        tokens.push({ kind: Slash, text: "/", pos: start, })
         i = i + 1
       }
-      '-' => {
+      '-' =>
         if i + 1 < n && chars[i + 1] == '>' {
-          tokens.push({ kind: ArrowRight, text: "->", pos: start })
+          tokens.push({ kind: ArrowRight, text: "->", pos: start, })
           i = i + 2
         } else {
-          tokens.push({ kind: Minus, text: "-", pos: start })
+          tokens.push({ kind: Minus, text: "-", pos: start, })
           i = i + 1
         }
-      }
-      '<' => {
+      '<' =>
         if i + 1 < n && chars[i + 1] == '-' {
-          tokens.push({ kind: ArrowLeft, text: "<-", pos: start })
+          tokens.push({ kind: ArrowLeft, text: "<-", pos: start, })
           i = i + 2
         } else if i + 1 < n && chars[i + 1] == '=' {
-          tokens.push({ kind: Le, text: "<=", pos: start })
+          tokens.push({ kind: Le, text: "<=", pos: start, })
           i = i + 2
         } else if i + 1 < n && chars[i + 1] == '>' {
-          tokens.push({ kind: Neq, text: "<>", pos: start })
+          tokens.push({ kind: Neq, text: "<>", pos: start, })
           i = i + 2
         } else {
-          tokens.push({ kind: Lt, text: "<", pos: start })
+          tokens.push({ kind: Lt, text: "<", pos: start, })
           i = i + 1
         }
-      }
-      '>' => {
+      '>' =>
         if i + 1 < n && chars[i + 1] == '=' {
-          tokens.push({ kind: Ge, text: ">=", pos: start })
+          tokens.push({ kind: Ge, text: ">=", pos: start, })
           i = i + 2
         } else {
-          tokens.push({ kind: Gt, text: ">", pos: start })
+          tokens.push({ kind: Gt, text: ">", pos: start, })
           i = i + 1
         }
-      }
       '=' => {
-        tokens.push({ kind: Eq, text: "=", pos: start })
+        tokens.push({ kind: Eq, text: "=", pos: start, })
         i = i + 1
       }
-      '!' => {
+      '!' =>
         if i + 1 < n && chars[i + 1] == '=' {
-          tokens.push({ kind: Neq, text: "!=", pos: start })
+          tokens.push({ kind: Neq, text: "!=", pos: start, })
           i = i + 2
         } else {
           raise LexError::UnexpectedChar(c, start)
         }
-      }
       _ => raise LexError::UnexpectedChar(c, start)
     }
   }
-  tokens.push({ kind: Eof, text: "", pos: n })
+  tokens.push({ kind: Eof, text: "", pos: n, })
   tokens
 }

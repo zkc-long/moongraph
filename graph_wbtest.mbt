@@ -48,7 +48,7 @@ test "graph/property-index" {
     None => fail("index should answer miss as empty")
   }
   // unknown key: no index, caller must scan
-  assert_true(g.lookup_property("age", VInt(3L)).is_empty())
+  assert_true(g.lookup_property("age", VInt(3L)) is None)
 }
 
 ///|

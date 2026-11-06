@@ -10,9 +10,18 @@ fn fixture() -> @mg.Graph {
     }
     m
   }
-  let ada = g.add_node(["Person"], props([("name", @mg.VStr("Ada")), ("age", @mg.VInt(36L))]))
-  let bob = g.add_node(["Person"], props([("name", @mg.VStr("Bob")), ("age", @mg.VInt(41L))]))
-  let cy = g.add_node(["Person"], props([("name", @mg.VStr("Cy")), ("age", @mg.VInt(29L))]))
+  let ada = g.add_node(
+    ["Person"],
+    props([("name", @mg.VStr("Ada")), ("age", @mg.VInt(36L))]),
+  )
+  let bob = g.add_node(
+    ["Person"],
+    props([("name", @mg.VStr("Bob")), ("age", @mg.VInt(41L))]),
+  )
+  let cy = g.add_node(
+    ["Person"],
+    props([("name", @mg.VStr("Cy")), ("age", @mg.VInt(29L))]),
+  )
   let acme = g.add_node(["Company"], props([("name", @mg.VStr("Acme"))]))
   ignore(g.add_edge("KNOWS", ada, bob, props([])) catch { _ => -1 })
   ignore(g.add_edge("KNOWS", bob, cy, props([])) catch { _ => -1 })
@@ -41,7 +50,10 @@ test "exec/scan-by-label" {
 
 ///|
 test "exec/property-filter-in-pattern" {
-  let result = query(fixture(), "MATCH (p:Person {name:'Bob'}) RETURN p.age AS age")
+  let result = query(
+    fixture(),
+    "MATCH (p:Person {name:'Bob'}) RETURN p.age AS age",
+  )
   assert_eq(result.row_count(), 1)
   assert_eq(result.rows[0][0].as_string(), "41")
 }
@@ -244,7 +256,10 @@ test "exec/functions" {
 
 ///|
 test "exec/to-table" {
-  let result = query(fixture(), "MATCH (p:Person {name:'Cy'}) RETURN p.name AS name")
+  let result = query(
+    fixture(),
+    "MATCH (p:Person {name:'Cy'}) RETURN p.name AS name",
+  )
   let table = result.to_table()
   assert_true(table.contains("name"))
   assert_true(table.contains("Cy"))
@@ -253,13 +268,19 @@ test "exec/to-table" {
 
 ///|
 test "exec/to-json" {
-  let result = query(fixture(), "MATCH (p:Person {name:'Cy'}) RETURN p.name AS name")
+  let result = query(
+    fixture(),
+    "MATCH (p:Person {name:'Cy'}) RETURN p.name AS name",
+  )
   assert_eq(result.to_json(), "{\"columns\":[\"name\"],\"rows\":[[\"Cy\"]]}")
 }
 
 ///|
 test "exec/empty-result" {
-  let result = query(fixture(), "MATCH (p:Person {name:'Nobody'}) RETURN p.name AS n")
+  let result = query(
+    fixture(),
+    "MATCH (p:Person {name:'Nobody'}) RETURN p.name AS n",
+  )
   assert_eq(result.row_count(), 0)
   assert_eq(result.columns, ["n"])
 }
