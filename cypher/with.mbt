@@ -91,7 +91,13 @@ fn project_grouped(
   let groups = group_bindings(graph, pseudo, bindings)
   let out : Array[Binding] = []
   for (values, representative) in groups {
-    let next : Binding = { vals: Map([]), nodes: Map([]), rels: Map([]), }
+    let next : Binding = {
+      vals: Map([]),
+      nodes: Map([]),
+      rels: Map([]),
+      paths: Map([]),
+      path_lens: Map([]),
+    }
     let mut i = 0
     for item in items {
       match item.expr {
@@ -122,7 +128,13 @@ fn rebind(
   binding : Binding,
   evaluate : (Expr) -> @mg.Value,
 ) -> Binding {
-  let next : Binding = { vals: Map([]), nodes: Map([]), rels: Map([]), }
+  let next : Binding = {
+    vals: Map([]),
+    nodes: Map([]),
+    rels: Map([]),
+    paths: Map([]),
+    path_lens: Map([]),
+  }
   for item in items {
     match item.expr {
       EVar(name) =>

@@ -6,6 +6,10 @@ package "moongraph/cmd/tck"
 // Errors
 
 // Types and methods
+type FixtureEdge
+
+type FixtureNode
+
 type Outcome
 
 type Scenario

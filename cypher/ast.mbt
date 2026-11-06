@@ -44,6 +44,8 @@ pub struct Hop {
 
 ///|
 pub struct PathPat {
+  variable : String
+  shortest : Bool
   start : NodePat
   hops : Array[Hop]
 }

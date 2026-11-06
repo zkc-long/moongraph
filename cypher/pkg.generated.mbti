@@ -32,6 +32,8 @@ pub struct Binding {
   vals : Map[String, @moongraph.Value]
   nodes : Map[String, Int32]
   rels : Map[String, Int32]
+  paths : Map[String, String]
+  path_lens : Map[String, Int32]
 }
 
 pub enum Dir {
@@ -73,6 +75,8 @@ pub struct Parser {
 }
 
 pub struct PathPat {
+  variable : String
+  shortest : Bool
   start : NodePat
   hops : Array[Hop]
 }

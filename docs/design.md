@@ -70,9 +70,8 @@ to a browser demo later.
 * `OPTIONAL MATCH`, `UNION`, `CALL`, `FOREACH`, `LOAD CSV` and parameters are not
   implemented; `WITH` supports a single projection stage followed by one more
   `MATCH`
-* path values (`()-[r]->()`) are not first-class results: `shortestPath` is a
-  scalar function `shortestPath(a, b)` returning a hop count, not the Cypher
-  pattern form
+* path values are rendered as canonical text rather than a structured value type,
+  and `nodes(p)` / `relationships(p)` are not implemented
 * a variable-length relationship variable binds the last relationship of the
   path, not the full list
 * aggregates are recognised only at the top level of a projection item

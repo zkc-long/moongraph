@@ -330,13 +330,33 @@ fn Parser::order_item(self : Parser) -> OrderItem raise ParseError {
 
 ///|
 fn Parser::pattern(self : Parser) -> PathPat raise ParseError {
+  // Optional `p =` prefix, and the `shortestPath(...)` wrapper.
+  let mut variable = ""
+  let mut shortest = false
+  if self.at(Ident) && self.tokens[self.pos + 1].kind == Eq {
+    variable = self.take().text
+    self.advance()
+  }
+  if self.at(Ident) && self.peek().text.to_upper() == "SHORTESTPATH" {
+    self.advance()
+    self.expect(LParen, "(")
+    shortest = true
+    let start = self.node_pattern()
+    let hops : Array[Hop] = []
+    while self.at(Minus) || self.at(ArrowLeft) {
+      let (rel, node) = self.rel_and_node()
+      hops.push({ rel, node, })
+    }
+    self.expect(RParen, ")")
+    return { variable, shortest, start, hops, }
+  }
   let start = self.node_pattern()
   let hops : Array[Hop] = []
   while self.at(Minus) || self.at(ArrowLeft) {
     let (rel, node) = self.rel_and_node()
     hops.push({ rel, node, })
   }
-  { start, hops, }
+  { variable, shortest, start, hops, }
 }
 
 ///|

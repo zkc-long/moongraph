@@ -160,7 +160,7 @@ fn parse_table_row(line : String) -> Array[String] {
 
 ///|
 fn run_scenario(sc : Scenario) -> Outcome {
-  let graph = @mg.Graph::new()
+  let mut graph = @mg.Graph::new()
   let mut columns : Array[String] = []
   let mut rows : Array[Array[@mg.Value]] = []
   let unsupported : Array[String] = []
@@ -171,9 +171,9 @@ fn run_scenario(sc : Scenario) -> Outcome {
       continue
     }
     if text == "any graph" {
-      // The harness-provided fixture graph is not implemented, so these
-      // scenarios cannot be evaluated honestly.
-      return Skipped("requires the TCK standard fixture graph")
+      // The TCK standard fixture: binary-tree-1.
+      graph = build_fixture()
+      continue
     }
     if text == "having executed:" {
       match unsupported_syntax(step.doc) {

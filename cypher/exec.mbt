@@ -11,16 +11,30 @@ pub struct Binding {
   vals : Map[String, @mg.Value]
   nodes : Map[String, Int32]
   rels : Map[String, Int32]
+  paths : Map[String, String]
+  path_lens : Map[String, Int32]
 }
 
 ///|
 fn empty_binding() -> Binding {
-  { vals: Map([]), nodes: Map([]), rels: Map([]), }
+  {
+    vals: Map([]),
+    nodes: Map([]),
+    rels: Map([]),
+    paths: Map([]),
+    path_lens: Map([]),
+  }
 }
 
 ///|
 fn Binding::clone(self : Binding) -> Binding {
-  { vals: self.vals.copy(), nodes: self.nodes.copy(), rels: self.rels.copy(), }
+  {
+    vals: self.vals.copy(),
+    nodes: self.nodes.copy(),
+    rels: self.rels.copy(),
+    paths: self.paths.copy(),
+    path_lens: self.path_lens.copy(),
+  }
 }
 
 ///|
@@ -114,15 +128,70 @@ fn match_pattern(
   pattern : PathPat,
   binding : Binding,
 ) -> Array[Binding] {
+  if pattern.shortest {
+    return match_shortest(graph, pattern, binding)
+  }
   let results : Array[Binding] = []
   let candidates = start_candidates(graph, pattern.start, binding)
   for node in candidates {
     match bind_node(pattern.start, node, binding, graph) {
-      Some(next) => expand_hops(graph, pattern.hops, 0, node, next, results)
+      Some(next) =>
+        expand_hops(
+          graph,
+          pattern.hops,
+          0,
+          node,
+          next,
+          graph.node_text(node),
+          0,
+          pattern.variable,
+          results,
+        )
       None => ()
     }
   }
   results
+}
+
+///|
+/// `shortestPath((a)-[:T*]-(b))`: both endpoints must already be bound.
+fn match_shortest(
+  graph : @mg.Graph,
+  pattern : PathPat,
+  binding : Binding,
+) -> Array[Binding] {
+  let from = match binding.nodes.get(pattern.start.variable) {
+    Some(id) => id
+    None => return []
+  }
+  if pattern.hops.length() != 1 {
+    return []
+  }
+  let hop = pattern.hops[0]
+  let to = match binding.nodes.get(hop.node.variable) {
+    Some(id) => id
+    None => return []
+  }
+  if from == to && hop.rel.min_hops > 0 {
+    return []
+  }
+  match shortest_path_text(graph, from, to, hop.rel) {
+    Some((text, hops_count)) => {
+      if hops_count < hop.rel.min_hops {
+        return []
+      }
+      if hop.rel.max_hops >= 0 && hops_count > hop.rel.max_hops {
+        return []
+      }
+      let next = binding.clone()
+      if pattern.variable != "" {
+        next.paths[pattern.variable] = text
+        next.path_lens[pattern.variable] = hops_count
+      }
+      [next]
+    }
+    None => []
+  }
 }
 
 ///|
@@ -132,10 +201,19 @@ fn expand_hops(
   index : Int32,
   current : Int32,
   binding : Binding,
+  path_text : String,
+  path_len : Int32,
+  path_var : String,
   out : Array[Binding],
 ) -> Unit {
   if index >= hops.length() {
-    out.push(binding)
+    let mut result = binding
+    if path_var != "" {
+      result = result.clone()
+      result.paths[path_var] = path_text
+      result.path_lens[path_var] = path_len
+    }
+    out.push(result)
     return
   }
   let hop = hops[index]
@@ -161,8 +239,22 @@ fn expand_hops(
       ok
     }
     if rel_ok {
+      let extended = path_text +
+        rel_step_text(hop.rel, rel_ids[rel_ids.length() - 1], graph) +
+        graph.node_text(target)
       match bind_node(hop.node, target, next, graph) {
-        Some(bound) => expand_hops(graph, hops, index + 1, target, bound, out)
+        Some(bound) =>
+          expand_hops(
+            graph,
+            hops,
+            index + 1,
+            target,
+            bound,
+            extended,
+            path_len + rel_ids.length(),
+            path_var,
+            out,
+          )
         None => ()
       }
     }
@@ -339,7 +431,11 @@ fn eval(expr : Expr, graph : @mg.Graph, binding : Binding) -> @mg.Value {
             None =>
               match binding.rels.get(name) {
                 Some(id) => @mg.VStr(graph.rel_text(id))
-                None => @mg.VNull
+                None =>
+                  match binding.paths.get(name) {
+                    Some(text) => @mg.VStr(text)
+                    None => @mg.VNull
+                  }
               }
           }
       }
@@ -548,6 +644,15 @@ fn eval_function(
           }
         _ => @mg.VNull
       }
+    "length" =>
+      match args {
+        [EVar(name)] =>
+          match binding.path_lens.get(name) {
+            Some(n) => @mg.VInt(n.to_int64())
+            None => @mg.VNull
+          }
+        _ => @mg.VNull
+      }
     "size" | "length" =>
       match args {
         [arg] =>
@@ -634,4 +739,120 @@ fn shortest_path_length(
     }
   }
   @mg.VNull
+}
+
+///|
+/// `-[:TYPE]->` / `<-[:TYPE]-` / `-[:TYPE]-` for one step of a path.
+fn rel_step_text(rel : RelPat, edge_id : Int32, graph : @mg.Graph) -> String {
+  let etype = if rel.types.length() > 0 {
+    rel.types[0]
+  } else {
+    graph.edge(edge_id).etype
+  }
+  let body = if etype == "" { "[]" } else { "[:\{etype}]" }
+  match rel.dir {
+    Out => "-" + body + "->"
+    In => "<-" + body + "-"
+    Both => "-" + body + "-"
+  }
+}
+
+///|
+/// Shortest path between two bound nodes, honouring the relationship type
+/// filter. Returns the canonical path text and its hop count.
+fn shortest_path_text(
+  graph : @mg.Graph,
+  from : Int32,
+  to : Int32,
+  rel : RelPat,
+) -> (String, Int32)? {
+  if from == to {
+    return Some((graph.node_text(from), 0))
+  }
+  // BFS with predecessors: node -> (previous node, edge id)
+  let prev : Map[Int32, (Int32, Int32)] = Map([])
+  let seen : Map[Int32, Bool] = Map([])
+  seen[from] = true
+  let queue : Array[Int32] = [from]
+  let mut head = 0
+  let mut found = false
+  while head < queue.length() && !found {
+    let node = queue[head]
+    head = head + 1
+    let candidates : Array[(Int32, Int32)] = []
+    match rel.dir {
+      In =>
+        for pair in graph.in_neighbors(node) {
+          candidates.push(pair)
+        }
+      Out =>
+        for pair in graph.out_neighbors(node) {
+          candidates.push(pair)
+        }
+      Both => {
+        for pair in graph.out_neighbors(node) {
+          candidates.push(pair)
+        }
+        for pair in graph.in_neighbors(node) {
+          candidates.push(pair)
+        }
+      }
+    }
+    for (next, edge_id) in candidates {
+      if !type_ok(graph, edge_id, rel) {
+        continue
+      }
+      if seen.get(next).unwrap_or(false) {
+        continue
+      }
+      seen[next] = true
+      prev[next] = (node, edge_id)
+      if next == to {
+        found = true
+        break
+      }
+      queue.push(next)
+    }
+  }
+  if !found {
+    return None
+  }
+  // Reconstruct backwards.
+  let steps : Array[(Int32, Int32)] = []
+  let mut cursor = to
+  while cursor != from {
+    match prev.get(cursor) {
+      Some((parent, edge_id)) => {
+        steps.push((parent, edge_id))
+        cursor = parent
+      }
+      None => return None
+    }
+  }
+  let buf = StringBuilder()
+  buf.write_string(graph.node_text(from))
+  let mut i = steps.length() - 1
+  while i >= 0 {
+    let (parent, edge_id) = steps[i]
+    let target = if i == 0 { to } else { steps[i - 1].0 }
+    ignore(parent)
+    buf.write_string(rel_step_text(rel, edge_id, graph))
+    buf.write_string(graph.node_text(target))
+    i = i - 1
+  }
+  Some((buf.to_string(), steps.length()))
+}
+
+///|
+fn type_ok(graph : @mg.Graph, edge_id : Int32, rel : RelPat) -> Bool {
+  if rel.types.length() == 0 {
+    return true
+  }
+  let etype = graph.edge(edge_id).etype
+  for t in rel.types {
+    if t == etype {
+      return true
+    }
+  }
+  false
 }
