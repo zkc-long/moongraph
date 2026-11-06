@@ -1,4 +1,4 @@
-﻿// The dynamically typed value model used for node and edge properties.
+// The dynamically typed value model used for node and edge properties.
 
 ///|
 /// A property value attached to a node or an edge.
@@ -154,15 +154,7 @@ pub fn Value::compare(self : Value, other : Value) -> Int32 {
       } else {
         -1
       }
-    (VStr(a), VStr(b)) => {
-      if a == b {
-        0
-      } else if a < b {
-        -1
-      } else {
-        1
-      }
-    }
+    (VStr(a), VStr(b)) => compare_strings(a, b)
     (VList(a), VList(b)) => {
       let n = if a.length() < b.length() { a.length() } else { b.length() }
       let mut i = 0
@@ -178,6 +170,41 @@ pub fn Value::compare(self : Value, other : Value) -> Int32 {
       }
     }
     _ => 0
+  }
+}
+
+///|
+/// Compare two strings by Unicode code point, then by length.
+///
+/// The engine deliberately does not delegate to a platform `String::compare`:
+/// ordering must be identical on every backend, and Cypher's ordering semantics
+/// are defined on code points, not on any locale collation.
+pub fn compare_strings(a : String, b : String) -> Int32 {
+  let left = Array::from_iter(a.iter())
+  let right = Array::from_iter(b.iter())
+  let n = if left.length() < right.length() {
+    left.length()
+  } else {
+    right.length()
+  }
+  let mut i = 0
+  while i < n {
+    let x = left[i].to_int()
+    let y = right[i].to_int()
+    if x < y {
+      return -1
+    }
+    if x > y {
+      return 1
+    }
+    i = i + 1
+  }
+  if left.length() < right.length() {
+    -1
+  } else if left.length() > right.length() {
+    1
+  } else {
+    0
   }
 }
 
