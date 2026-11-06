@@ -91,33 +91,40 @@ fn Parser::expect_text(
 ///|
 fn Parser::query(self : Parser) -> Query raise ParseError {
   let patterns : Array[PathPat] = []
-  if !self.at(KwMatch) {
-    raise ParseError::UnexpectedToken("MATCH", self.peek().pos)
-  }
-  self.advance()
-  patterns.push(self.pattern())
-  while self.at(Comma) {
+  let mut where_ : Expr? = None
+  // A query may start with MATCH or with a write clause (`CREATE (n)`).
+  if self.at(KwMatch) {
     self.advance()
     patterns.push(self.pattern())
+    while self.at(Comma) {
+      self.advance()
+      patterns.push(self.pattern())
+    }
+    if self.at(KwWhere) {
+      self.advance()
+      where_ = Some(self.expr())
+    }
   }
-  let where_ = if self.at(KwWhere) {
-    self.advance()
-    Some(self.expr())
-  } else {
-    None
+  let write = self.write_clause()
+  let has_return = self.at(KwReturn)
+  if !has_return && write is None {
+    raise ParseError::UnexpectedToken("RETURN", self.peek().pos)
   }
-  self.expect(KwReturn, "RETURN")
-  let distinct = if self.at(KwDistinct) {
-    self.advance()
-    true
-  } else {
-    false
-  }
+  let mut distinct = false
   let items : Array[ReturnItem] = []
-  items.push(self.return_item())
-  while self.at(Comma) {
+  if has_return {
     self.advance()
+    distinct = if self.at(KwDistinct) {
+      self.advance()
+      true
+    } else {
+      false
+    }
     items.push(self.return_item())
+    while self.at(Comma) {
+      self.advance()
+      items.push(self.return_item())
+    }
   }
   let order : Array[OrderItem] = []
   if self.at(KwOrder) {
@@ -147,7 +154,56 @@ fn Parser::query(self : Parser) -> Query raise ParseError {
   if !self.at(Eof) {
     raise ParseError::UnexpectedToken("end of query", self.peek().pos)
   }
-  { patterns, where_, items, distinct, order, skip, limit, }
+  { patterns, where_, write, has_return, items, distinct, order, skip, limit }
+}
+
+///|
+/// Parse an optional write clause: CREATE / MERGE / SET / DELETE.
+fn Parser::write_clause(self : Parser) -> WriteClause? raise ParseError {
+  if self.at(KwCreate) || self.at(KwMerge) {
+    let is_create = self.at(KwCreate)
+    self.advance()
+    let patterns : Array[PathPat] = []
+    patterns.push(self.pattern())
+    while self.at(Comma) {
+      self.advance()
+      patterns.push(self.pattern())
+    }
+    return Some(if is_create { WCreate(patterns) } else { WMerge(patterns) })
+  }
+  if self.at(KwSet) {
+    self.advance()
+    let items : Array[SetItem] = []
+    items.push(self.set_item())
+    while self.at(Comma) {
+      self.advance()
+      items.push(self.set_item())
+    }
+    return Some(WSet(items))
+  }
+  if self.at(KwDetach) || self.at(KwDelete) {
+    if self.at(KwDetach) {
+      self.advance()
+    }
+    self.expect(KwDelete, "DELETE")
+    let targets : Array[String] = []
+    targets.push(self.expect_text(Ident, "variable"))
+    while self.at(Comma) {
+      self.advance()
+      targets.push(self.expect_text(Ident, "variable"))
+    }
+    return Some(WDelete(targets))
+  }
+  None
+}
+
+///|
+fn Parser::set_item(self : Parser) -> SetItem raise ParseError {
+  let target = self.expect_text(Ident, "variable")
+  self.expect(Dot, ".")
+  let key = self.expect_text(Ident, "property name")
+  self.expect(Eq, "=")
+  { target, key, value: self.expr() }
 }
 
 ///|

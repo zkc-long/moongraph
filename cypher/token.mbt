@@ -58,6 +58,11 @@ pub enum TokKind {
   KwStartsWith
   KwEndsWith
   KwContains
+  KwCreate
+  KwMerge
+  KwSet
+  KwDelete
+  KwDetach
 }
 
 ///|
@@ -99,6 +104,11 @@ fn keyword_kind(word : String) -> TokKind {
     "STARTS" => KwStartsWith
     "ENDS" => KwEndsWith
     "CONTAINS" => KwContains
+    "CREATE" => KwCreate
+    "MERGE" => KwMerge
+    "SET" => KwSet
+    "DELETE" => KwDelete
+    "DETACH" => KwDetach
     _ => Ident
   }
 }

@@ -71,6 +71,13 @@ fn execute(graph : @mg.Graph, query : Query) -> QueryResult {
     }
     None => ()
   }
+  let bindings = match query.write {
+    Some(clause) => apply_write(graph, clause, bindings)
+    None => bindings
+  }
+  if !query.has_return {
+    return { columns: [], rows: [] }
+  }
   project(graph, query, bindings)
 }
 

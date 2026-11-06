@@ -62,6 +62,8 @@ pub struct OrderItem {
 ///|
 pub struct Query {
   patterns : Array[PathPat]
+  write : WriteClause?
+  has_return : Bool
   where_ : Expr?
   items : Array[ReturnItem]
   distinct : Bool
@@ -111,4 +113,22 @@ pub fn expr_text(expr : Expr) -> String {
       buf.to_string()
     }
   }
+}
+
+///|
+/// A single `SET target.key = expr` assignment.
+pub struct SetItem {
+  target : String
+  key : String
+  value : Expr
+}
+
+///|
+/// The write clause of a query. MoonGraph keeps at most one write clause per
+/// query, which covers the CREATE/MERGE/SET/DELETE forms used by the test suite.
+pub enum WriteClause {
+  WCreate(Array[PathPat])
+  WMerge(Array[PathPat])
+  WSet(Array[SetItem])
+  WDelete(Array[String])
 }

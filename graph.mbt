@@ -59,14 +59,17 @@ pub suberror GraphError {
 }
 
 ///|
-/// An insert-only property graph with adjacency and secondary indexes.
+/// A property graph with adjacency lists and secondary indexes.
+/// Nodes and edges are tombstoned on delete so ids stay stable.
 pub struct Graph {
   nodes : Array[Node]
   edges : Array[Edge]
-  out_edges : Array[Array[Int32]]
-  in_edges : Array[Array[Int32]]
-  label_index : Map[String, Array[Int32]]
-  prop_index : Map[String, Map[String, Array[Int32]]]
+  out_edges : Array[Array[Int]]
+  in_edges : Array[Array[Int]]
+  label_index : Map[String, Array[Int]]
+  prop_index : Map[String, Map[String, Array[Int]]]
+  alive_nodes : Array[Bool]
+  alive_edges : Array[Bool]
 }
 
 ///|
@@ -78,6 +81,8 @@ pub fn Graph::new() -> Graph {
     in_edges: [],
     label_index: Map([]),
     prop_index: Map([]),
+    alive_nodes: [],
+    alive_edges: [],
   }
 }
 
@@ -110,6 +115,7 @@ pub fn Graph::add_node(
 ) -> Int32 {
   let id = self.nodes.length()
   self.nodes.push({ id, labels, props, })
+  self.alive_nodes.push(true)
   self.out_edges.push([])
   self.in_edges.push([])
   for label in labels {
@@ -156,6 +162,7 @@ pub fn Graph::add_edge(
   }
   let id = self.edges.length()
   self.edges.push({ id, etype, src, dst, props, })
+  self.alive_edges.push(true)
   self.out_edges[src].push(id)
   self.in_edges[dst].push(id)
   id
@@ -179,7 +186,9 @@ pub fn Graph::out_neighbors(
 ) -> Array[(Int32, Int32)] {
   let result : Array[(Int32, Int32)] = []
   for edge_id in self.out_edges[node] {
-    result.push((self.edges[edge_id].dst, edge_id))
+    if self.is_alive_edge(edge_id) {
+      result.push((self.edges[edge_id].dst, edge_id))
+    }
   }
   result
 }
@@ -189,7 +198,9 @@ pub fn Graph::out_neighbors(
 pub fn Graph::in_neighbors(self : Graph, node : Int32) -> Array[(Int32, Int32)] {
   let result : Array[(Int32, Int32)] = []
   for edge_id in self.in_edges[node] {
-    result.push((self.edges[edge_id].src, edge_id))
+    if self.is_alive_edge(edge_id) {
+      result.push((self.edges[edge_id].src, edge_id))
+    }
   }
   result
 }
@@ -199,7 +210,15 @@ pub fn Graph::in_neighbors(self : Graph, node : Int32) -> Array[(Int32, Int32)] 
 /// Falls back to a scan for labels that were never indexed.
 pub fn Graph::nodes_with_label(self : Graph, label : String) -> Array[Int32] {
   match self.label_index.get(label) {
-    Some(ids) => ids.copy()
+    Some(ids) => {
+      let live : Array[Int] = []
+      for id in ids {
+        if self.alive_nodes[id] {
+          live.push(id)
+        }
+      }
+      live
+    }
     None => []
   }
 }
