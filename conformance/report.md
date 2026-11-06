@@ -9,8 +9,8 @@
 | D:\Users\hunji\Desktop\MoonBit\2026-11\moongraph\conformance\features\Match3.feature | 30 | 11 | 15 | 4 |
 | D:\Users\hunji\Desktop\MoonBit\2026-11\moongraph\conformance\features\Merge1.feature | 17 | 6 | 6 | 5 |
 | D:\Users\hunji\Desktop\MoonBit\2026-11\moongraph\conformance\features\Return1.feature | 2 | 1 | 0 | 1 |
-| D:\Users\hunji\Desktop\MoonBit\2026-11\moongraph\conformance\features\Return2.feature | 18 | 8 | 5 | 5 |
+| D:\Users\hunji\Desktop\MoonBit\2026-11\moongraph\conformance\features\Return2.feature | 18 | 9 | 4 | 5 |
 | D:\Users\hunji\Desktop\MoonBit\2026-11\moongraph\conformance\features\Set1.feature | 11 | 1 | 5 | 5 |
 
-Scenarios: 130, passed: 51, failed: 34, skipped: 45
-Pass rate over supported scenarios: 60% (51/85)
+Scenarios: 130, passed: 52, failed: 33, skipped: 45
+Pass rate over supported scenarios: 61.1764705882353% (52/85)

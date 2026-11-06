@@ -188,7 +188,7 @@ fn run_scenario(sc : Scenario) -> Outcome {
       }
       ignore(
         @cypher.run(graph, step.doc) catch {
-          _ => return Failed("setup query failed")
+          _ => return Failed("setup query failed: " + step.doc.trim().to_owned())
         },
       )
       continue
@@ -635,3 +635,39 @@ fn check_side_effects(
   None
 }
 
+
+///|
+/// Split a TCK `having executed:` block into statements. Continuation lines
+/// (starting with `(` or an identifier) stay with the statement they belong to.
+fn split_statements(doc : String) -> Array[String] {
+  let keywords : Array[String] = [
+    "CREATE", "MERGE", "MATCH", "WITH", "SET", "DELETE", "DETACH", "RETURN",
+  ]
+  let out : Array[String] = []
+  let buf = StringBuilder()
+  for raw in doc.split("\n") {
+    let line = raw.trim().to_owned()
+    if line == "" {
+      continue
+    }
+    let upper = line.to_upper()
+    let mut starts = false
+    for keyword in keywords {
+      if upper == keyword ||
+        upper.has_prefix(keyword + " ") ||
+        upper.has_prefix(keyword + "(") {
+        starts = true
+      }
+    }
+    if starts && buf.to_string().trim() != "" {
+      out.push(buf.to_string())
+      buf.reset()
+    }
+    buf.write_string(raw.to_owned())
+    buf.write_string("\n")
+  }
+  if buf.to_string().trim() != "" {
+    out.push(buf.to_string())
+  }
+  out
+}

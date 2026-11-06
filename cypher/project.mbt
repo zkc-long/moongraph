@@ -128,7 +128,7 @@ fn group_bindings(
     // Aggregates over an empty input still produce one row (count = 0).
     let values : Array[@mg.Value] = []
     for item in query.items {
-      values.push(fold(item.expr, graph, []))
+      values.push(eval_group(item.expr, graph, []))
     }
     return [(values, empty_binding())]
   }

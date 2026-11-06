@@ -58,12 +58,30 @@ pub fn QueryResult::column_count(self : QueryResult) -> Int32 {
 /// the evaluator is total (type mismatches yield `null`, like Cypher).
 pub fn run(graph : @mg.Graph, source : String) -> QueryResult raise ParseError {
   let query = parse_query(source)
-  execute(graph, query)
+  let (_, result) = execute(graph, query, [empty_binding()])
+  result
 }
 
 ///|
-fn execute(graph : @mg.Graph, query : Query) -> QueryResult {
+/// Run a script of statements, carrying variable bindings from one statement
+/// to the next. The TCK having executed: blocks rely on this: a node created
+/// in one statement is referenced by name in the next.
+pub fn run_script(graph : @mg.Graph, statements : Array[String]) -> Unit raise ParseError {
   let mut bindings : Array[Binding] = [empty_binding()]
+  for statement in statements {
+    let query = parse_query(statement)
+    let (next, _) = execute(graph, query, bindings)
+    bindings = next
+  }
+}
+
+///|
+fn execute(
+  graph : @mg.Graph,
+  query : Query,
+  initial : Array[Binding],
+) -> (Array[Binding], QueryResult) {
+  let mut bindings : Array[Binding] = initial
   for pattern in query.patterns {
     let next : Array[Binding] = []
     for binding in bindings {
@@ -117,9 +135,9 @@ fn execute(graph : @mg.Graph, query : Query) -> QueryResult {
     None => reported
   }
   if !query.has_return {
-    return { columns: [], rows: [], }
+    return (bindings, { columns: [], rows: [], })
   }
-  project(graph, query, bindings)
+  (bindings, project(graph, query, bindings))
 }
 
 ///|
