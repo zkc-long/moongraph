@@ -569,6 +569,15 @@ fn eval_function(
         _ => @mg.VNull
       }
     // Aggregates are handled in `project`; outside a projection they are null.
+    "shortestPath" =>
+      match args {
+        [EVar(from_name), EVar(to_name)] =>
+          match (binding.nodes.get(from_name), binding.nodes.get(to_name)) {
+            (Some(src), Some(dst)) => shortest_path_length(graph, src, dst)
+            _ => @mg.VNull
+          }
+        _ => @mg.VNull
+      }
     "count" | "sum" | "avg" | "min" | "max" | "collect" => @mg.VNull
     _ => @mg.VNull
   }
@@ -586,4 +595,43 @@ fn resolve_binding_id(binding : Binding, name : String) -> (Int32, Int32)? {
         None => None
       }
   }
+}
+
+///|
+/// Breadth-first hop distance treating relationships as undirected.
+/// Returns `null` when the two nodes are not connected.
+fn shortest_path_length(
+  graph : @mg.Graph,
+  from : Int32,
+  to : Int32,
+) -> @mg.Value {
+  if from == to {
+    return @mg.VInt(0L)
+  }
+  let dist : Map[Int32, Int32] = Map([])
+  dist[from] = 0
+  let queue : Array[Int32] = [from]
+  let mut head = 0
+  while head < queue.length() {
+    let node = queue[head]
+    head = head + 1
+    let depth = dist[node]
+    let neighbours : Array[(Int32, Int32)] = []
+    for pair in graph.out_neighbors(node) {
+      neighbours.push(pair)
+    }
+    for pair in graph.in_neighbors(node) {
+      neighbours.push(pair)
+    }
+    for (next, _) in neighbours {
+      if next == to {
+        return @mg.VInt((depth + 1).to_int64())
+      }
+      if dist.get(next) is None {
+        dist[next] = depth + 1
+        queue.push(next)
+      }
+    }
+  }
+  @mg.VNull
 }

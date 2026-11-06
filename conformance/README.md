@@ -37,7 +37,7 @@ moon build --target native
 
 `conformance/report.md` is rewritten on every run.
 
-## Current numbers (2026-11-06)
+## Current numbers (2026-11-07)
 
 | file | scenarios | passed | failed | skipped |
 |---|---|---|---|---|
@@ -46,23 +46,23 @@ moon build --target native
 | Match3 | 30 | 11 | 15 | 4 |
 | Return1 | 2 | 1 | 0 | 1 |
 | Return2 | 18 | 6 | 7 | 5 |
-| Create1 | 20 | 0 | 3 | 17 |
-| Set1 | 11 | 0 | 1 | 10 |
-| Delete1 | 8 | 0 | 2 | 6 |
-| Merge1 | 17 | 2 | 7 | 8 |
+| Create1 | 20 | 3 | 5 | 12 |
+| Set1 | 11 | 1 | 2 | 8 |
+| Delete1 | 8 | 2 | 2 | 4 |
+| Merge1 | 17 | 5 | 8 | 4 |
 
-**30 passed / 37 failed / 63 skipped.** Over the 67 scenarios the runner can
-actually evaluate, that is a 44.8% pass rate.
+**39 passed / 41 failed / 50 skipped**, i.e. 48.8% of the 80 scenarios the runner
+can evaluate.
 
-Progression while building this: structural node/relationship values took
-passed from 11 to 26; the `WITH` clause took it to 30.
+Progression while building this: structural node/relationship values took passed
+from 11 to 26; `WITH` to 30; side-effect assertions plus case-insensitive
+keywords plus `MERGE ... ON CREATE/ON MATCH` to 39.
 
 ## What closing the gap would take
 
-1. **Parameters and the standard fixture graph** — unlocks the 17 `Create1`
-   skips and most of `Set1`/`Delete1`.
-2. **Label predicates in expressions** (`RETURN (n:Foo)`) and remaining
-   unsupported syntax in setup queries.
-3. **Merge semantics**: `ON CREATE SET` / `ON MATCH SET`, and multi-element
-   merges.
-4. **Path values** (`()-[r]->()`) as first-class results.
+1. **A fixture graph for `Given any graph`** — 36 of the skips are this step; the
+   TCK expects the harness to provide `binary-tree-1/2`.
+2. **Parameters (`$x`) and the remaining expression syntax** — label predicates,
+   map projections, list comprehensions.
+3. **Path values** (`()-[r]->()`) and the `shortestPath()` pattern form.
+4. **MERGE edge cases**: multiple elements, uniqueness conflicts.

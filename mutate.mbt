@@ -162,10 +162,10 @@ fn Graph::index_property(
 ///|
 /// Aggregate counts used by the TCK side-effect assertions and by `info`.
 pub struct GraphStats {
-  nodes : Int
-  relationships : Int
-  properties : Int
-  labels : Int
+  nodes : Int32
+  relationships : Int32
+  properties : Int32
+  labels : Int32
 }
 
 ///|
@@ -193,5 +193,5 @@ pub fn Graph::stats(self : Graph) -> GraphStats {
     }
     e = e + 1
   }
-  { nodes, relationships: relational, properties, labels }
+  { nodes, relationships: relational, properties, labels, }
 }

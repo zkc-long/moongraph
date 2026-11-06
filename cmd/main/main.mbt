@@ -19,6 +19,8 @@ fn usage() -> Unit {
   println("  moongraph info     <graph.jsonl>")
   println("  moongraph import   <graph.jsonl>")
   println("  moongraph registry <records.jsonl>")
+  println("  moongraph dot      <graph.jsonl>")
+  println("  moongraph html     <graph.jsonl> > graph.html")
   println("  moongraph bench    <graph.jsonl> <cypher> [--iters N]")
 }
 
@@ -112,6 +114,16 @@ async fn main {
             "ok: \{graph.node_count()} nodes, \{graph.edge_count()} edges (\{lines} records)",
           )
         }
+        None => ()
+      }
+    }
+    "html" => {
+      if args.length() < 3 {
+        usage()
+        return
+      }
+      match read_graph(args[2]) {
+        Some(graph) => println(@mg.to_html(graph, "MoonGraph: " + args[2]))
         None => ()
       }
     }

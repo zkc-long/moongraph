@@ -29,13 +29,15 @@ let result = @cypher.run(g, "MATCH (a:Person)-[:KNOWS]->(b) RETURN a.name, b.nam
 * writes: `CREATE`, `MERGE`, `SET`, `DELETE` and `DETACH DELETE`, with
   tombstoned deletes so ids stay stable
 * JSON Lines / CSV import, JSON snapshot save/load, Graphviz DOT export
-* a CLI (`moongraph query|info|import|registry|dot|bench`) that runs natively
+* a standalone HTML visualisation (`html` subcommand: embedded JSON + force layout, no server)
+* `shortestPath(a, b)` hop distance (undirected BFS) as a scalar function
+* a CLI (`moongraph query|info|import|registry|dot|html|bench`) that runs natively
 * an openCypher TCK subset runner (`cmd/tck`) with an explicit skip taxonomy
 
 ## What is deliberately out of scope
 
 `OPTIONAL MATCH`, `UNION`, `CALL`, `FOREACH`, `LOAD CSV`, parameters,
-structural (node/relationship) result values, `shortestPath`, multi-statement
+path values (`()-[r]->()`), multi-statement
 transactions and concurrency. The engine is single-threaded by design; see
 `docs/design.md` for the rationale and `conformance/README.md` for the TCK
 status.

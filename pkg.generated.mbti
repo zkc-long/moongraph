@@ -20,6 +20,8 @@ pub fn rel_text(String, Map[String, Value]) -> String
 
 pub fn to_dot(Graph) -> String
 
+pub fn to_html(Graph, String) -> String
+
 pub fn value_to_json(Value) -> Json
 
 // Errors
@@ -86,6 +88,14 @@ pub fn Graph::rel_text(Self, Int32) -> String
 pub fn Graph::remove_node_prop(Self, Int32, String) -> Unit
 pub fn Graph::set_edge_prop(Self, Int32, String, Value) -> Unit
 pub fn Graph::set_node_prop(Self, Int32, String, Value) -> Unit
+pub fn Graph::stats(Self) -> GraphStats
+
+pub struct GraphStats {
+  nodes : Int32
+  relationships : Int32
+  properties : Int32
+  labels : Int32
+}
 
 pub(all) enum Json {
   JNull

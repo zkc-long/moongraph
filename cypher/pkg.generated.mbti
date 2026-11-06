@@ -197,7 +197,7 @@ pub struct WithClause {
 
 pub enum WriteClause {
   WCreate(Array[PathPat])
-  WMerge(Array[PathPat])
+  WMerge(Array[PathPat], Array[SetItem], Array[SetItem])
   WSet(Array[SetItem])
   WDelete(Array[String])
 }

@@ -151,7 +151,11 @@ fn resolve_node(pattern : NodePat, binding : Binding) -> Int32? {
 
 ///|
 /// Apply `SET target.key = expr` items to one binding.
-fn apply_set(graph : @mg.Graph, items : Array[SetItem], binding : Binding) -> Unit {
+fn apply_set(
+  graph : @mg.Graph,
+  items : Array[SetItem],
+  binding : Binding,
+) -> Unit {
   for item in items {
     let value = eval(item.value, graph, binding)
     match binding.nodes.get(item.target) {

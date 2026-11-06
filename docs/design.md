@@ -67,15 +67,21 @@ to a browser demo later.
 
 ## Known limitations
 
-* read-only: no `CREATE`/`MERGE`/`SET`/`DELETE`
-* no `OPTIONAL MATCH`, `UNION`, `CALL`, `FOREACH`; `WITH` supports a single projection stage followed by one more `MATCH`
-* a variable-length relationship variable binds the last relationship, not the
-  full list
+* `OPTIONAL MATCH`, `UNION`, `CALL`, `FOREACH`, `LOAD CSV` and parameters are not
+  implemented; `WITH` supports a single projection stage followed by one more
+  `MATCH`
+* path values (`()-[r]->()`) are not first-class results: `shortestPath` is a
+  scalar function `shortestPath(a, b)` returning a hop count, not the Cypher
+  pattern form
+* a variable-length relationship variable binds the last relationship of the
+  path, not the full list
 * aggregates are recognised only at the top level of a projection item
+* writes are single-clause: `MERGE` supports `ON CREATE` / `ON MATCH`, but there
+  is no uniqueness constraint enforcement and no rollback if a query fails
+  halfway
 * single-threaded, single-writer, no transactions
 * `ORDER BY` is a stable insertion sort: fine for the result sizes this engine
   targets, wrong choice for a million-row sort
-
 ## Where the complexity actually went
 
 Half of the code is not graph traversal but the boring parts of a query language:

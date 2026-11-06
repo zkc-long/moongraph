@@ -501,7 +501,8 @@ fn Parser::comparison(self : Parser) -> Expr raise ParseError {
     let op = if self.at(KwStartsWith) { "STARTS WITH" } else { "ENDS WITH" }
     self.advance()
     let token = self.peek()
-    if (token.kind == Ident || token.kind == KwWith) && token.text.to_upper() == "WITH" {
+    if (token.kind == Ident || token.kind == KwWith) &&
+      token.text.to_upper() == "WITH" {
       self.advance()
     } else {
       raise ParseError::UnexpectedToken("WITH", token.pos)

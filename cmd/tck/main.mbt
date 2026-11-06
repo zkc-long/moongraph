@@ -603,7 +603,9 @@ fn check_side_effects(
   let dl = now.labels - old.labels
   if table.length() == 0 {
     if dn != 0 || dr != 0 || dp != 0 || dl != 0 {
-      return Some("expected no side effects, got nodes=\{dn} rels=\{dr} props=\{dp} labels=\{dl}")
+      return Some(
+        "expected no side effects, got nodes=\{dn} rels=\{dr} props=\{dp} labels=\{dl}",
+      )
     }
     return None
   }
