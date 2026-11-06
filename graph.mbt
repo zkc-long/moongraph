@@ -64,10 +64,10 @@ pub suberror GraphError {
 pub struct Graph {
   nodes : Array[Node]
   edges : Array[Edge]
-  out_edges : Array[Array[Int]]
-  in_edges : Array[Array[Int]]
-  label_index : Map[String, Array[Int]]
-  prop_index : Map[String, Map[String, Array[Int]]]
+  out_edges : Array[Array[Int32]]
+  in_edges : Array[Array[Int32]]
+  label_index : Map[String, Array[Int32]]
+  prop_index : Map[String, Map[String, Array[Int32]]]
   alive_nodes : Array[Bool]
   alive_edges : Array[Bool]
 }
@@ -211,7 +211,7 @@ pub fn Graph::in_neighbors(self : Graph, node : Int32) -> Array[(Int32, Int32)] 
 pub fn Graph::nodes_with_label(self : Graph, label : String) -> Array[Int32] {
   match self.label_index.get(label) {
     Some(ids) => {
-      let live : Array[Int] = []
+      let live : Array[Int32] = []
       for id in ids {
         if self.alive_nodes[id] {
           live.push(id)

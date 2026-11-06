@@ -76,7 +76,7 @@ fn execute(graph : @mg.Graph, query : Query) -> QueryResult {
     None => bindings
   }
   if !query.has_return {
-    return { columns: [], rows: [] }
+    return { columns: [], rows: [], }
   }
   project(graph, query, bindings)
 }
@@ -120,9 +120,24 @@ fn expand_hops(
       // full path is available through `length()` on the node pair.
       next.rels[hop.rel.variable] = rel_ids[rel_ids.length() - 1]
     }
-    match bind_node(hop.node, target, next, graph) {
-      Some(bound) => expand_hops(graph, hops, index + 1, target, bound, out)
-      None => ()
+    let rel_ok = if hop.rel.props.length() == 0 {
+      true
+    } else {
+      let last = rel_ids[rel_ids.length() - 1]
+      let edge = graph.edge(last)
+      let mut ok = true
+      for (key, expr) in hop.rel.props {
+        if !edge.prop(key).equal_value(eval(expr, graph, next)) {
+          ok = false
+        }
+      }
+      ok
+    }
+    if rel_ok {
+      match bind_node(hop.node, target, next, graph) {
+        Some(bound) => expand_hops(graph, hops, index + 1, target, bound, out)
+        None => ()
+      }
     }
   }
 }

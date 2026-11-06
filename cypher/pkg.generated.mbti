@@ -75,6 +75,8 @@ pub struct PathPat {
 
 pub struct Query {
   patterns : Array[PathPat]
+  write : WriteClause?
+  has_return : Bool
   where_ : Expr?
   items : Array[ReturnItem]
   distinct : Bool
@@ -96,6 +98,7 @@ pub fn QueryResult::to_table(Self) -> String
 pub struct RelPat {
   variable : String
   types : Array[String]
+  props : Array[(String, Expr)]
   dir : Dir
   min_hops : Int32
   max_hops : Int32
@@ -104,6 +107,12 @@ pub struct RelPat {
 pub struct ReturnItem {
   expr : Expr
   col : String
+}
+
+pub struct SetItem {
+  target : String
+  key : String
+  value : Expr
 }
 
 #derive(Eq)
@@ -159,12 +168,24 @@ pub enum TokKind {
   KwStartsWith
   KwEndsWith
   KwContains
+  KwCreate
+  KwMerge
+  KwSet
+  KwDelete
+  KwDetach
 }
 
 pub struct Token {
   kind : TokKind
   text : String
   pos : Int32
+}
+
+pub enum WriteClause {
+  WCreate(Array[PathPat])
+  WMerge(Array[PathPat])
+  WSet(Array[SetItem])
+  WDelete(Array[String])
 }
 
 // Type aliases

@@ -270,3 +270,39 @@ pub fn load_registry_records(text : String) -> Graph raise LoadError {
   }
   graph
 }
+
+///|
+/// Export the graph as Graphviz DOT for visual inspection.
+pub fn to_dot(graph : Graph) -> String {
+  let buf = StringBuilder()
+  buf.write_string("digraph moongraph {\n")
+  buf.write_string(
+    "  rankdir=LR;\n  node [shape=box, fontname=\"monospace\"];\n",
+  )
+  let mut i = 0
+  while i < graph.node_count() {
+    if graph.is_alive_node(i) {
+      let node = graph.node(i)
+      let label = match node.props.get("name") {
+        Some(VStr(name)) => name
+        _ => "n\{i}"
+      }
+      buf.write_string("  n\{i} [label=\"")
+      buf.write_string(escape_json_string(label))
+      buf.write_string("\"];\n")
+    }
+    i = i + 1
+  }
+  let mut e = 0
+  while e < graph.edge_count() {
+    if graph.is_alive_edge(e) {
+      let edge = graph.edge(e)
+      buf.write_string("  n\{edge.src} -> n\{edge.dst} [label=\"")
+      buf.write_string(escape_json_string(edge.etype))
+      buf.write_string("\"];\n")
+    }
+    e = e + 1
+  }
+  buf.write_string("}\n")
+  buf.to_string()
+}

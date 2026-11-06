@@ -6,7 +6,7 @@
 // to the index (the old entry stays but is skipped because the value differs).
 
 ///|
-pub fn Graph::is_alive_node(self : Graph, id : Int) -> Bool {
+pub fn Graph::is_alive_node(self : Graph, id : Int32) -> Bool {
   if id < 0 || id >= self.alive_nodes.length() {
     return false
   }
@@ -14,7 +14,7 @@ pub fn Graph::is_alive_node(self : Graph, id : Int) -> Bool {
 }
 
 ///|
-pub fn Graph::is_alive_edge(self : Graph, id : Int) -> Bool {
+pub fn Graph::is_alive_edge(self : Graph, id : Int32) -> Bool {
   if id < 0 || id >= self.alive_edges.length() {
     return false
   }
@@ -22,7 +22,7 @@ pub fn Graph::is_alive_edge(self : Graph, id : Int) -> Bool {
 }
 
 ///|
-pub fn Graph::alive_node_count(self : Graph) -> Int {
+pub fn Graph::alive_node_count(self : Graph) -> Int32 {
   let mut n = 0
   for alive in self.alive_nodes {
     if alive {
@@ -33,7 +33,7 @@ pub fn Graph::alive_node_count(self : Graph) -> Int {
 }
 
 ///|
-pub fn Graph::alive_edge_count(self : Graph) -> Int {
+pub fn Graph::alive_edge_count(self : Graph) -> Int32 {
   let mut n = 0
   for alive in self.alive_edges {
     if alive {
@@ -45,7 +45,7 @@ pub fn Graph::alive_edge_count(self : Graph) -> Int {
 
 ///|
 /// Tombstone a node together with every relationship incident to it.
-pub fn Graph::delete_node(self : Graph, id : Int) -> Unit {
+pub fn Graph::delete_node(self : Graph, id : Int32) -> Unit {
   if !self.is_alive_node(id) {
     return
   }
@@ -59,7 +59,7 @@ pub fn Graph::delete_node(self : Graph, id : Int) -> Unit {
 }
 
 ///|
-pub fn Graph::delete_edge(self : Graph, id : Int) -> Unit {
+pub fn Graph::delete_edge(self : Graph, id : Int32) -> Unit {
   if id < 0 || id >= self.alive_edges.length() {
     return
   }
@@ -73,14 +73,14 @@ pub fn Graph::ensure_node(
   self : Graph,
   labels : Array[String],
   props : Map[String, Value],
-) -> Int {
+) -> Int32 {
   self.add_node(labels, props)
 }
 
 ///|
 pub fn Graph::set_node_prop(
   self : Graph,
-  id : Int,
+  id : Int32,
   key : String,
   value : Value,
 ) -> Unit {
@@ -93,7 +93,7 @@ pub fn Graph::set_node_prop(
 }
 
 ///|
-pub fn Graph::remove_node_prop(self : Graph, id : Int, key : String) -> Unit {
+pub fn Graph::remove_node_prop(self : Graph, id : Int32, key : String) -> Unit {
   if !self.is_alive_node(id) {
     return
   }
@@ -103,7 +103,7 @@ pub fn Graph::remove_node_prop(self : Graph, id : Int, key : String) -> Unit {
 ///|
 pub fn Graph::set_edge_prop(
   self : Graph,
-  id : Int,
+  id : Int32,
   key : String,
   value : Value,
 ) -> Unit {
@@ -114,7 +114,7 @@ pub fn Graph::set_edge_prop(
 }
 
 ///|
-pub fn Graph::add_node_label(self : Graph, id : Int, label : String) -> Unit {
+pub fn Graph::add_node_label(self : Graph, id : Int32, label : String) -> Unit {
   if !self.is_alive_node(id) {
     return
   }
@@ -131,7 +131,12 @@ pub fn Graph::add_node_label(self : Graph, id : Int, label : String) -> Unit {
 
 ///|
 /// Record a node id under a property value in the secondary index.
-fn Graph::index_property(self : Graph, id : Int, key : String, value : Value) -> Unit {
+fn Graph::index_property(
+  self : Graph,
+  id : Int32,
+  key : String,
+  value : Value,
+) -> Unit {
   let encoded = encode_index_key(value)
   if encoded == "" {
     return
@@ -139,7 +144,7 @@ fn Graph::index_property(self : Graph, id : Int, key : String, value : Value) ->
   let by_key = match self.prop_index.get(key) {
     Some(m) => m
     None => {
-      let m : Map[String, Array[Int]] = Map([])
+      let m : Map[String, Array[Int32]] = Map([])
       self.prop_index[key] = m
       m
     }

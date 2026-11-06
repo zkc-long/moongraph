@@ -59,8 +59,8 @@ fn apply_write(
     }
     WDelete(targets) => {
       // Collect first so that deleting one binding cannot invalidate another.
-      let doomed_nodes : Array[Int] = []
-      let doomed_edges : Array[Int] = []
+      let doomed_nodes : Array[Int32] = []
+      let doomed_edges : Array[Int32] = []
       for binding in bindings {
         for target in targets {
           match binding.nodes.get(target) {
@@ -132,6 +132,9 @@ fn create_pattern(
       "RELATED"
     }
     let props : Map[String, @mg.Value] = Map([])
+    for (key, expr) in hop.rel.props {
+      props[key] = eval(expr, graph, current)
+    }
     let (src, dst) = match hop.rel.dir {
       In => (target, current_node)
       _ => (current_node, target)
@@ -147,7 +150,7 @@ fn create_pattern(
 }
 
 ///|
-fn resolve_node(pattern : NodePat, binding : Binding) -> Int? {
+fn resolve_node(pattern : NodePat, binding : Binding) -> Int32? {
   if pattern.variable == "" {
     return None
   }

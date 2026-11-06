@@ -1,0 +1,17 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "moongraph/cmd/tck"
+
+// Values
+
+// Errors
+
+// Types and methods
+type Outcome
+
+type Scenario
+
+type Step
+
+// Type aliases
+
+// Traits

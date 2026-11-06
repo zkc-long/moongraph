@@ -30,6 +30,7 @@ pub struct NodePat {
 pub struct RelPat {
   variable : String
   types : Array[String]
+  props : Array[(String, Expr)]
   dir : Dir
   min_hops : Int32
   max_hops : Int32 // -1 means unbounded

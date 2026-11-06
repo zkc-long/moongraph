@@ -154,7 +154,7 @@ fn Parser::query(self : Parser) -> Query raise ParseError {
   if !self.at(Eof) {
     raise ParseError::UnexpectedToken("end of query", self.peek().pos)
   }
-  { patterns, where_, write, has_return, items, distinct, order, skip, limit }
+  { patterns, where_, write, has_return, items, distinct, order, skip, limit, }
 }
 
 ///|
@@ -203,7 +203,7 @@ fn Parser::set_item(self : Parser) -> SetItem raise ParseError {
   self.expect(Dot, ".")
   let key = self.expect_text(Ident, "property name")
   self.expect(Eq, "=")
-  { target, key, value: self.expr() }
+  { target, key, value: self.expr(), }
 }
 
 ///|
@@ -303,6 +303,7 @@ fn Parser::rel_and_node(self : Parser) -> (RelPat, NodePat) raise ParseError {
   let leading = self.take() // Minus or ArrowLeft
   let mut variable = ""
   let types : Array[String] = []
+  let mut rel_props : Array[(String, Expr)] = []
   let mut min_hops = 1
   let mut max_hops = 1
   if self.at(LBracket) {
@@ -317,6 +318,9 @@ fn Parser::rel_and_node(self : Parser) -> (RelPat, NodePat) raise ParseError {
         self.advance()
         types.push(self.expect_text(Ident, "relationship type"))
       }
+    }
+    if self.at(LBrace) {
+      rel_props = self.map_literal()
     }
     if self.at(Star) {
       self.advance()
@@ -345,7 +349,7 @@ fn Parser::rel_and_node(self : Parser) -> (RelPat, NodePat) raise ParseError {
       }
   }
   let node = self.node_pattern()
-  ({ variable, types, dir, min_hops, max_hops, }, node)
+  ({ variable, types, props: rel_props, dir, min_hops, max_hops, }, node)
 }
 
 ///|

@@ -115,6 +115,16 @@ async fn main {
         None => ()
       }
     }
+    "dot" => {
+      if args.length() < 3 {
+        usage()
+        return
+      }
+      match read_graph(args[2]) {
+        Some(graph) => println(@mg.to_dot(graph))
+        None => ()
+      }
+    }
     "registry" => {
       if args.length() < 3 {
         usage()

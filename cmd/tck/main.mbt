@@ -55,7 +55,7 @@ fn parse_feature(text : String) -> Array[Scenario] {
   let mut table : Array[Array[String]] = []
   let flush_step = fn() {
     if step_text != "" {
-      steps.push({ text: step_text, doc: doc.to_string(), table })
+      steps.push({ text: step_text, doc: doc.to_string(), table, })
     }
   }
   for raw in lines {
@@ -82,7 +82,7 @@ fn parse_feature(text : String) -> Array[Scenario] {
       // Close the previous scenario.
       flush_step()
       match current {
-        Some(sc) => scenarios.push({ name: sc.name, steps })
+        Some(sc) => scenarios.push({ name: sc.name, steps, })
         None => ()
       }
       steps = []
@@ -95,11 +95,15 @@ fn parse_feature(text : String) -> Array[Scenario] {
       } else {
         trim_view(line.get_view(start=17).unwrap_or(""))
       }
-      current = Some({ name, steps: [] })
+      current = Some({ name, steps: [], })
       continue
     }
     let keyword = first_word(line)
-    if keyword == "Given" || keyword == "When" || keyword == "Then" || keyword == "And" || keyword == "But" {
+    if keyword == "Given" ||
+      keyword == "When" ||
+      keyword == "Then" ||
+      keyword == "And" ||
+      keyword == "But" {
       flush_step()
       step_text = trim_view(line.get_view(start=keyword.length()).unwrap_or(""))
       table = []
@@ -117,7 +121,7 @@ fn parse_feature(text : String) -> Array[Scenario] {
   }
   flush_step()
   match current {
-    Some(sc) => scenarios.push({ name: sc.name, steps })
+    Some(sc) => scenarios.push({ name: sc.name, steps, })
     None => ()
   }
   scenarios
@@ -126,7 +130,10 @@ fn parse_feature(text : String) -> Array[Scenario] {
 ///|
 fn first_word(line : String) -> String {
   match line.find(" ") {
-    Some(idx) => String::from_array(Array::from_iter(line.get_view(end=idx).unwrap_or("").iter()))
+    Some(idx) =>
+      String::from_array(
+        Array::from_iter(line.get_view(end=idx).unwrap_or("").iter()),
+      )
     None => line
   }
 }
@@ -172,9 +179,11 @@ fn run_scenario(sc : Scenario) -> Outcome {
         Some(why) => return Skipped(why)
         None => ()
       }
-      ignore(@cypher.run(graph, step.doc) catch {
-        _ => return Failed("setup query failed")
-      })
+      ignore(
+        @cypher.run(graph, step.doc) catch {
+          _ => return Failed("setup query failed")
+        },
+      )
       continue
     }
     if text == "executing query:" {
@@ -250,8 +259,6 @@ fn run_scenario(sc : Scenario) -> Outcome {
   Passed
 }
 
-
-
 ///|
 /// Scenarios that compare whole nodes or relationships are outside the
 /// supported subset: this engine returns node ids, not structural values.
@@ -260,21 +267,27 @@ fn structural_expectation(table : Array[Array[String]]) -> String? {
   while i < table.length() {
     for cell in table[i] {
       let c = cell.trim().to_owned()
-      if c.has_prefix("(") || c.has_prefix("<node>") || c.has_prefix("<rel>") || c.has_prefix("{") {
-        return Some("structural value expectations are outside the supported subset")
+      if c.has_prefix("(") ||
+        c.has_prefix("<node>") ||
+        c.has_prefix("<rel>") ||
+        c.has_prefix("{") {
+        return Some(
+          "structural value expectations are outside the supported subset",
+        )
       }
     }
     i = i + 1
   }
   None
 }
+
 ///|
 /// Cypher constructs this engine does not implement. Scenarios that need them
 /// are reported as skipped instead of failed so the pass rate stays honest.
 fn unsupported_syntax(query : String) -> String? {
   let markers : Array[String] = [
-    "$", "WITH ", "UNION", "OPTIONAL", "CALL ", "FOREACH", "LOAD CSV",
-    "PROCEDURE", " ^ ", "STARTS WITH", "ENDS WITH", "CONTAINS",
+    "$", "WITH ", "UNION", "OPTIONAL", "CALL ", "FOREACH", "LOAD CSV", "PROCEDURE",
+    " ^ ", "STARTS WITH", "ENDS WITH", "CONTAINS",
   ]
   for marker in markers {
     if query.contains(marker) {
@@ -283,6 +296,7 @@ fn unsupported_syntax(query : String) -> String? {
   }
   None
 }
+
 ///|
 fn expected_table(table : Array[Array[String]]) -> Array[Array[@mg.Value]] {
   let out : Array[Array[@mg.Value]] = []
@@ -318,7 +332,11 @@ fn parse_cell(cell : String) -> @mg.Value {
     }
   }
   if text.has_prefix("[") && text.ends_with("]") {
-    let inner = text.get_view(start=1).unwrap_or("").get_view(end=text.char_length() - 1).unwrap_or("")
+    let inner = text
+      .get_view(start=1)
+      .unwrap_or("")
+      .get_view(end=text.char_length() - 1)
+      .unwrap_or("")
     let items : Array[@mg.Value] = []
     for part in inner.split(",") {
       items.push(parse_cell(part.to_owned()))
@@ -353,7 +371,9 @@ fn compare(
     let mut i = 0
     while i < expected.length() {
       if !rows_equal(expected[i], actual[i]) {
-        return Some("row \{i} mismatch: expected \{render(expected[i])}, got \{render(actual[i])}")
+        return Some(
+          "row \{i} mismatch: expected \{render(expected[i])}, got \{render(actual[i])}",
+        )
       }
       i = i + 1
     }
@@ -502,12 +522,18 @@ async fn main {
     )
   }
   let supported = passed + failed
-  let rate = if supported == 0 { 0.0 } else { passed.to_double() / supported.to_double() * 100.0 }
+  let rate = if supported == 0 {
+    0.0
+  } else {
+    passed.to_double() / supported.to_double() * 100.0
+  }
   report.write_string("\n")
   report.write_string(
     "Scenarios: \{total}, passed: \{passed}, failed: \{failed}, skipped: \{skipped}\n",
   )
-  report.write_string("Pass rate over supported scenarios: \{rate}% (\{passed}/\{supported})\n")
+  report.write_string(
+    "Pass rate over supported scenarios: \{rate}% (\{passed}/\{supported})\n",
+  )
   println("")
   println(
     "total=\{total} passed=\{passed} failed=\{failed} skipped=\{skipped} rate=\{rate}%",

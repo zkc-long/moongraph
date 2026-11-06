@@ -1,12 +1,11 @@
 # MoonGraph
 
-A property-graph database with a Cypher subset query engine, written in **pure
+A property-graph database with a Cypher subset engine, written in **pure
 MoonBit** with zero third-party dependencies.
 
 MoonGraph stores nodes and relationships with typed properties, indexes them,
-and answers `MATCH ... WHERE ... RETURN` queries. It is the first Cypher engine
-in the MoonBit ecosystem: the only prior graph work on mooncakes is a Neo4j
-*client* (query strings + Bolt), not a database.
+and answers `MATCH ... WHERE ... RETURN` queries — with `CREATE`, `MERGE`,
+`SET` and `DELETE` for the write side.
 
 ```moonbit
 let g = Graph::new()
@@ -26,24 +25,57 @@ let result = @cypher.run(g, "MATCH (a:Person)-[:KNOWS]->(b) RETURN a.name, b.nam
   variable-length paths (`*1..3`), `WHERE`, `RETURN` with `DISTINCT`,
   aggregations (`count`, `sum`, `avg`, `min`, `max`, `collect`),
   `ORDER BY`, `SKIP`, `LIMIT`
-* JSON Lines / CSV import, JSON snapshot save/load
-* a CLI (`moongraph query|import|info|bench`) that runs natively
+* writes: `CREATE`, `MERGE`, `SET`, `DELETE` and `DETACH DELETE`, with
+  tombstoned deletes so ids stay stable
+* JSON Lines / CSV import, JSON snapshot save/load, Graphviz DOT export
+* a CLI (`moongraph query|info|import|registry|dot|bench`) that runs natively
+* an openCypher TCK subset runner (`cmd/tck`) with an explicit skip taxonomy
 
 ## What is deliberately out of scope
 
-`OPTIONAL MATCH`, `UNION`, `CALL`, `FOREACH`, `LOAD CSV`, write clauses
-(`CREATE`/`MERGE`/`SET`/`DELETE`), multi-statement transactions and
-concurrency. The engine is read-only and single-threaded by design; see
-`docs/design.md` for the rationale.
+`OPTIONAL MATCH`, `UNION`, `CALL`, `WITH`, `FOREACH`, `LOAD CSV`, parameters,
+structural (node/relationship) result values, `shortestPath`, multi-statement
+transactions and concurrency. The engine is single-threaded by design; see
+`docs/design.md` for the rationale and `conformance/README.md` for the TCK
+status.
 
 ## Quick start
 
 ```bash
 moon build --target native
-./_build/native/debug/build/cmd/main/main.exe query examples/mooncakes.mgdb \
-  "MATCH (p:Package)-[:DEPENDS_ON*1..2]->(c:Package {name:'moonbitlang/core'}) \
-   RETURN c.name, count(p) AS fan_in ORDER BY fan_in DESC LIMIT 5"
+
+# a hand written sample
+./_build/native/debug/build/cmd/main/main.exe \
+  query examples/people.jsonl \
+  "MATCH (p:Person)-[:WORKS_AT]->(c:Company) RETURN c.name AS company, count(p) AS staff"
+
+# the mooncakes dependency graph
+node scripts/fetch_registry.js 120 > examples/mooncakes.registry.jsonl
+./_build/native/debug/build/cmd/main/main.exe registry examples/mooncakes.registry.jsonl > examples/mooncakes.jsonl
+./_build/native/debug/build/cmd/main/main.exe query examples/mooncakes.jsonl \
+  "MATCH (d:Package)-[:DEPENDS_ON]->(p:Package) RETURN p.name AS package, count(d) AS dependents ORDER BY dependents DESC LIMIT 5"
 ```
+
+Rendering the graph:
+
+```bash
+./_build/native/debug/build/cmd/main/main.exe dot examples/mooncakes.jsonl | dot -Tsvg > graph.svg
+```
+
+## Tests
+
+```bash
+moon test            # 73 unit and end-to-end tests
+```
+
+## Conformance
+
+```bash
+moon run cmd/tck -- conformance/features/Match1.feature
+```
+
+See `conformance/README.md` for the current numbers and what they do and do not
+claim.
 
 ## License
 
