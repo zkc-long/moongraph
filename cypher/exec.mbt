@@ -66,7 +66,10 @@ pub fn run(graph : @mg.Graph, source : String) -> QueryResult raise ParseError {
 /// Run a script of statements, carrying variable bindings from one statement
 /// to the next. The TCK having executed: blocks rely on this: a node created
 /// in one statement is referenced by name in the next.
-pub fn run_script(graph : @mg.Graph, statements : Array[String]) -> Unit raise ParseError {
+pub fn run_script(
+  graph : @mg.Graph,
+  statements : Array[String],
+) -> Unit raise ParseError {
   let mut bindings : Array[Binding] = [empty_binding()]
   for statement in statements {
     let query = parse_query(statement)
@@ -339,8 +342,20 @@ fn neighbors(
     Out => add(graph.out_neighbors(node))
     In => add(graph.in_neighbors(node))
     Both => {
-      add(graph.out_neighbors(node))
-      add(graph.in_neighbors(node))
+      // A self-loop appears in both adjacency lists; Cypher returns it once.
+      let seen : Map[Int32, Bool] = Map([])
+      let both : Array[(Int32, Int32)] = []
+      for pair in graph.out_neighbors(node) {
+        seen[pair.1] = true
+        both.push(pair)
+      }
+      for pair in graph.in_neighbors(node) {
+        if !seen.get(pair.1).unwrap_or(false) {
+          seen[pair.1] = true
+          both.push(pair)
+        }
+      }
+      add(both)
     }
   }
   result
@@ -538,7 +553,8 @@ fn eval(expr : Expr, graph : @mg.Graph, binding : Binding) -> @mg.Value {
         _ => @mg.VNull
       }
     }
-    EMapProj(base, entries) => map_projection_value(base, entries, graph, binding)
+    EMapProj(base, entries) =>
+      map_projection_value(base, entries, graph, binding)
   }
 }
 
@@ -604,7 +620,7 @@ fn slice_value(
 }
 
 ///|
-fn normalize_index(index : Int, length : Int) -> Int {
+fn normalize_index(index : Int32, length : Int32) -> Int32 {
   let mut i = index
   if i < 0 {
     i = length + i

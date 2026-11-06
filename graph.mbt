@@ -248,9 +248,21 @@ pub fn Graph::lookup_property(
 ///|
 /// All distinct labels known to the graph, sorted for deterministic output.
 pub fn Graph::labels(self : Graph) -> Array[String] {
-  let result = Array::from_iter(self.label_index.keys())
-  result.sort()
-  result
+  // Only labels on live nodes count: the index keeps tombstones.
+  let out : Array[String] = []
+  for label, ids in self.label_index {
+    let mut alive = false
+    for id in ids {
+      if self.alive_nodes[id] {
+        alive = true
+      }
+    }
+    if alive {
+      out.push(label)
+    }
+  }
+  out.sort()
+  out
 }
 
 ///|

@@ -186,11 +186,10 @@ fn run_scenario(sc : Scenario) -> Outcome {
         Some(why) => return Skipped(why)
         None => ()
       }
-      ignore(
-        @cypher.run(graph, step.doc) catch {
-          _ => return Failed("setup query failed: " + step.doc.trim().to_owned())
-        },
-      )
+      let statements = split_statements(step.doc)
+      @cypher.run_script(graph, statements) catch {
+        _ => return Failed("setup query failed: " + join_statements(statements))
+      }
       continue
     }
     if text == "executing query:" {
@@ -635,7 +634,6 @@ fn check_side_effects(
   None
 }
 
-
 ///|
 /// Split a TCK `having executed:` block into statements. Continuation lines
 /// (starting with `(` or an identifier) stay with the statement they belong to.
@@ -670,4 +668,16 @@ fn split_statements(doc : String) -> Array[String] {
     out.push(buf.to_string())
   }
   out
+}
+
+///|
+fn join_statements(statements : Array[String]) -> String {
+  let buf = StringBuilder()
+  for statement in statements {
+    if buf.to_string() != "" {
+      buf.write_string(" ;; ")
+    }
+    buf.write_string(statement.trim().to_owned())
+  }
+  buf.to_string()
 }

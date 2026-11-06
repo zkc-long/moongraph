@@ -156,7 +156,14 @@ pub fn expr_text(expr : Expr) -> String {
         Some(e) => " WHERE " + expr_text(e)
         None => ""
       }
-      "[" + variable + " IN " + expr_text(source) + pred + " | " + expr_text(projection) + "]"
+      "[" +
+      variable +
+      " IN " +
+      expr_text(source) +
+      pred +
+      " | " +
+      expr_text(projection) +
+      "]"
     }
     EMapProj(base, entries) => {
       let parts : Array[String] = []

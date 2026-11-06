@@ -512,7 +512,11 @@ fn eval_group(
         eval(expr, graph, sample(members))
       }
     EBin(op, l, r) =>
-      apply_binop(op, eval_group(l, graph, members), eval_group(r, graph, members))
+      apply_binop(
+        op,
+        eval_group(l, graph, members),
+        eval_group(r, graph, members),
+      )
     ENot(e) =>
       match eval_group(e, graph, members) {
         @mg.VBool(b) => @mg.VBool(!b)

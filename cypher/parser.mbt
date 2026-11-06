@@ -647,7 +647,9 @@ fn Parser::postfix(self : Parser) -> Expr raise ParseError {
 
 ///|
 /// `n {.name, .*, alias: expr}` projection entries.
-fn Parser::map_projection(self : Parser) -> Array[(String, Expr?)] raise ParseError {
+fn Parser::map_projection(
+  self : Parser,
+) -> Array[(String, Expr?)] raise ParseError {
   self.expect(LBrace, "{")
   let entries : Array[(String, Expr?)] = []
   while !self.at(RBrace) {
