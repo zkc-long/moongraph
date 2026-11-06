@@ -1,0 +1,15 @@
+import {
+  "moongraph" @mg,
+  "moongraph/cypher" @cypher,
+  "moonbitlang/core/bench",
+  "moonbitlang/core/env",
+  "moonbitlang/core/string",
+  "moonbitlang/core/async",
+  "moonbitlang/core/async/fs",
+}
+
+supported_targets = "-all+native"
+
+pkgtype(kind: "executable")
+
+options("allow-experimental-packages": true)
