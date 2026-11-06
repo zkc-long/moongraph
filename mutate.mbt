@@ -158,3 +158,40 @@ fn Graph::index_property(
     None => by_key[encoded] = [id]
   }
 }
+
+///|
+/// Aggregate counts used by the TCK side-effect assertions and by `info`.
+pub struct GraphStats {
+  nodes : Int
+  relationships : Int
+  properties : Int
+  labels : Int
+}
+
+///|
+pub fn Graph::stats(self : Graph) -> GraphStats {
+  let mut nodes = 0
+  let mut properties = 0
+  let mut labels = 0
+  let mut relational = 0
+  let mut i = 0
+  while i < self.node_count() {
+    if self.is_alive_node(i) {
+      let node = self.node(i)
+      nodes = nodes + 1
+      properties = properties + node.props.length()
+      labels = labels + node.labels.length()
+    }
+    i = i + 1
+  }
+  let mut e = 0
+  while e < self.edge_count() {
+    if self.is_alive_edge(e) {
+      let edge = self.edge(e)
+      relational = relational + 1
+      properties = properties + edge.props.length()
+    }
+    e = e + 1
+  }
+  { nodes, relationships: relational, properties, labels }
+}

@@ -139,7 +139,7 @@ pub struct SetItem {
 /// query, which covers the CREATE/MERGE/SET/DELETE forms used by the test suite.
 pub enum WriteClause {
   WCreate(Array[PathPat])
-  WMerge(Array[PathPat])
+  WMerge(Array[PathPat], Array[SetItem], Array[SetItem])
   WSet(Array[SetItem])
   WDelete(Array[String])
 }

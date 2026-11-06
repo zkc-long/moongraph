@@ -164,14 +164,15 @@ fn run_scenario(sc : Scenario) -> Outcome {
   let mut columns : Array[String] = []
   let mut rows : Array[Array[@mg.Value]] = []
   let unsupported : Array[String] = []
+  let mut before : @mg.GraphStats? = None
   for step in sc.steps {
     let text = step.text
     if text == "an empty graph" || text == "the database is initialised" {
       continue
     }
     if text == "any graph" {
-      // The TCK's standard fixture graph is built by the harness, which this
-      // runner does not implement, so these scenarios cannot be evaluated.
+      // The harness-provided fixture graph is not implemented, so these
+      // scenarios cannot be evaluated honestly.
       return Skipped("requires the TCK standard fixture graph")
     }
     if text == "having executed:" {
@@ -191,6 +192,7 @@ fn run_scenario(sc : Scenario) -> Outcome {
         Some(why) => return Skipped(why)
         None => ()
       }
+      before = Some(graph.stats())
       let result = @cypher.run(graph, step.doc) catch {
         _ =>
           match unsupported_syntax(step.doc) {
@@ -209,10 +211,14 @@ fn run_scenario(sc : Scenario) -> Outcome {
       continue
     }
     if text == "no side effects" || text == "no side effects," {
+      match check_side_effects(before, graph, []) {
+        Some(reason) => return Failed(reason)
+        None => ()
+      }
       continue
     }
-    if text == "the result should be:" {
-      match compare(expected_table(step.table), rows, columns, false) {
+    if text == "the side effects should be:" {
+      match check_side_effects(before, graph, step.table) {
         Some(reason) => return Failed(reason)
         None => ()
       }
@@ -576,4 +582,51 @@ async fn main {
   let _ = @fs.write_text("conformance/report.md", report.to_string()) catch {
     _ => ()
   }
+}
+
+///|
+/// Compare the graph before and after a query against a TCK side-effect table.
+/// An empty table means "no side effects at all".
+fn check_side_effects(
+  before : @mg.GraphStats?,
+  graph : @mg.Graph,
+  table : Array[Array[String]],
+) -> String? {
+  let old = match before {
+    Some(stats) => stats
+    None => return None
+  }
+  let now = graph.stats()
+  let dn = now.nodes - old.nodes
+  let dr = now.relationships - old.relationships
+  let dp = now.properties - old.properties
+  let dl = now.labels - old.labels
+  if table.length() == 0 {
+    if dn != 0 || dr != 0 || dp != 0 || dl != 0 {
+      return Some("expected no side effects, got nodes=\{dn} rels=\{dr} props=\{dp} labels=\{dl}")
+    }
+    return None
+  }
+  for row in table {
+    if row.length() < 2 {
+      continue
+    }
+    let name = row[0].trim().to_owned()
+    let expected = @string.parse_int(row[1].trim()) catch { _ => 0 }
+    let actual = match name {
+      "+nodes" => dn
+      "-nodes" => -dn
+      "+relationships" => dr
+      "-relationships" => -dr
+      "+properties" => dp
+      "-properties" => -dp
+      "+labels" => dl
+      "-labels" => -dl
+      _ => 0
+    }
+    if actual != expected {
+      return Some("side effect \{name}: expected \{expected}, got \{actual}")
+    }
+  }
+  None
 }

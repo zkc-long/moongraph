@@ -223,7 +223,34 @@ fn Parser::write_clause(self : Parser) -> WriteClause? raise ParseError {
       self.advance()
       patterns.push(self.pattern())
     }
-    return Some(if is_create { WCreate(patterns) } else { WMerge(patterns) })
+    if is_create {
+      return Some(WCreate(patterns))
+    }
+    let on_create : Array[SetItem] = []
+    let on_match : Array[SetItem] = []
+    while self.peek().kind == Ident && self.peek().text.to_upper() == "ON" {
+      self.advance()
+      if self.at(KwCreate) {
+        self.advance()
+        self.expect(KwSet, "SET")
+        on_create.push(self.set_item())
+        while self.at(Comma) {
+          self.advance()
+          on_create.push(self.set_item())
+        }
+      } else if self.at(KwMatch) {
+        self.advance()
+        self.expect(KwSet, "SET")
+        on_match.push(self.set_item())
+        while self.at(Comma) {
+          self.advance()
+          on_match.push(self.set_item())
+        }
+      } else {
+        raise ParseError::UnexpectedToken("CREATE or MATCH", self.peek().pos)
+      }
+    }
+    return Some(WMerge(patterns, on_create, on_match))
   }
   if self.at(KwSet) {
     self.advance()
@@ -474,7 +501,7 @@ fn Parser::comparison(self : Parser) -> Expr raise ParseError {
     let op = if self.at(KwStartsWith) { "STARTS WITH" } else { "ENDS WITH" }
     self.advance()
     let token = self.peek()
-    if (token.kind == Ident || token.kind == KwWith) && token.text == "WITH" {
+    if (token.kind == Ident || token.kind == KwWith) && token.text.to_upper() == "WITH" {
       self.advance()
     } else {
       raise ParseError::UnexpectedToken("WITH", token.pos)

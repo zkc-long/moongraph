@@ -82,7 +82,9 @@ pub suberror LexError {
 
 ///|
 fn keyword_kind(word : String) -> TokKind {
-  match word {
+  // Cypher keywords are case insensitive; identifiers are not.
+  let key = word.to_upper()
+  match key {
     "MATCH" => KwMatch
     "WHERE" => KwWhere
     "RETURN" => KwReturn

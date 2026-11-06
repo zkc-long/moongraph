@@ -25,7 +25,7 @@ fn apply_write(
       }
       out
     }
-    WMerge(patterns) => {
+    WMerge(patterns, on_create, on_match) => {
       let out : Array[Binding] = []
       for binding in bindings {
         let mut current = binding
@@ -33,8 +33,10 @@ fn apply_write(
           let matched = match_pattern(graph, pattern, current)
           if matched.length() > 0 {
             current = matched[0]
+            apply_set(graph, on_match, current)
           } else {
             current = create_pattern(graph, pattern, current)
+            apply_set(graph, on_create, current)
           }
         }
         out.push(current)
@@ -43,17 +45,7 @@ fn apply_write(
     }
     WSet(items) => {
       for binding in bindings {
-        for item in items {
-          let value = eval(item.value, graph, binding)
-          match binding.nodes.get(item.target) {
-            Some(id) => graph.set_node_prop(id, item.key, value)
-            None =>
-              match binding.rels.get(item.target) {
-                Some(id) => graph.set_edge_prop(id, item.key, value)
-                None => ()
-              }
-          }
-        }
+        apply_set(graph, items, binding)
       }
       bindings
     }
@@ -155,4 +147,20 @@ fn resolve_node(pattern : NodePat, binding : Binding) -> Int32? {
     return None
   }
   binding.nodes.get(pattern.variable)
+}
+
+///|
+/// Apply `SET target.key = expr` items to one binding.
+fn apply_set(graph : @mg.Graph, items : Array[SetItem], binding : Binding) -> Unit {
+  for item in items {
+    let value = eval(item.value, graph, binding)
+    match binding.nodes.get(item.target) {
+      Some(id) => graph.set_node_prop(id, item.key, value)
+      None =>
+        match binding.rels.get(item.target) {
+          Some(id) => graph.set_edge_prop(id, item.key, value)
+          None => ()
+        }
+    }
+  }
 }
