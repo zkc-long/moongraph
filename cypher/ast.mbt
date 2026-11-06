@@ -10,6 +10,11 @@ pub enum Expr {
   EIsNull(Expr, Bool) // Bool = negated, i.e. `IS NOT NULL`
   EFunc(String, Array[Expr])
   EList(Array[Expr])
+  EIndex(Expr, Expr)
+  ESlice(Expr, Expr?, Expr?)
+  EHasLabel(Expr, Array[String])
+  EListComp(String, Expr, Expr?, Expr)
+  EMapProj(Expr, Array[(String, Expr?)])
 }
 
 ///|
@@ -125,6 +130,44 @@ pub fn expr_text(expr : Expr) -> String {
       buf.write_string("]")
       buf.to_string()
     }
+    EIndex(base, index) => expr_text(base) + "[" + expr_text(index) + "]"
+    ESlice(base, lo, hi) => {
+      let low = match lo {
+        Some(e) => expr_text(e)
+        None => ""
+      }
+      let high = match hi {
+        Some(e) => expr_text(e)
+        None => ""
+      }
+      expr_text(base) + "[" + low + ".." + high + "]"
+    }
+    EHasLabel(base, labels) => {
+      let buf = StringBuilder()
+      buf.write_string(expr_text(base))
+      for label in labels {
+        buf.write_string(":")
+        buf.write_string(label)
+      }
+      buf.to_string()
+    }
+    EListComp(variable, source, predicate, projection) => {
+      let pred = match predicate {
+        Some(e) => " WHERE " + expr_text(e)
+        None => ""
+      }
+      "[" + variable + " IN " + expr_text(source) + pred + " | " + expr_text(projection) + "]"
+    }
+    EMapProj(base, entries) => {
+      let parts : Array[String] = []
+      for (key, value) in entries {
+        match value {
+          Some(e) => parts.push(key + ": " + expr_text(e))
+          None => parts.push("." + key)
+        }
+      }
+      expr_text(base) + " {" + join_text(parts) + "}"
+    }
   }
 }
 
@@ -144,4 +187,18 @@ pub enum WriteClause {
   WMerge(Array[PathPat], Array[SetItem], Array[SetItem])
   WSet(Array[SetItem])
   WDelete(Array[String])
+}
+
+///|
+fn join_text(parts : Array[String]) -> String {
+  let buf = StringBuilder()
+  let mut first = true
+  for part in parts {
+    if !first {
+      buf.write_string(", ")
+    }
+    first = false
+    buf.write_string(part)
+  }
+  buf.to_string()
 }

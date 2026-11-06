@@ -465,7 +465,194 @@ fn eval(expr : Expr, graph : @mg.Graph, binding : Binding) -> @mg.Value {
       @mg.VList(items.map(fn(item) { eval(item, graph, binding) }))
     EBin(op, left, right) => eval_binary(op, left, right, graph, binding)
     EFunc(name, args) => eval_function(name, args, graph, binding)
+    EIndex(base, index) => {
+      let container = eval(base, graph, binding)
+      index_value(container, eval(index, graph, binding))
+    }
+    ESlice(base, lo, hi) => {
+      let container = eval(base, graph, binding)
+      let from = match lo {
+        Some(e) => eval(e, graph, binding)
+        None => @mg.VNull
+      }
+      let upto = match hi {
+        Some(e) => eval(e, graph, binding)
+        None => @mg.VNull
+      }
+      slice_value(container, from, upto)
+    }
+    EHasLabel(base, labels) =>
+      match base {
+        EVar(name) =>
+          match binding.nodes.get(name) {
+            Some(id) => {
+              let node = graph.node(id)
+              let mut ok = true
+              for label in labels {
+                if !node.has_label(label) {
+                  ok = false
+                }
+              }
+              @mg.VBool(ok)
+            }
+            None => @mg.VBool(false)
+          }
+        _ => @mg.VBool(false)
+      }
+    EListComp(variable, source, predicate, projection) => {
+      let src = eval(source, graph, binding)
+      match src {
+        @mg.VList(items) => {
+          let out : Array[@mg.Value] = []
+          for item in items {
+            let inner = binding.clone()
+            inner.vals[variable] = item
+            let keep = match predicate {
+              Some(pred) => truthy(eval(pred, graph, inner))
+              None => true
+            }
+            if keep {
+              out.push(eval(projection, graph, inner))
+            }
+          }
+          @mg.VList(out)
+        }
+        _ => @mg.VNull
+      }
+    }
+    EMapProj(base, entries) => map_projection_value(base, entries, graph, binding)
   }
+}
+
+///|
+fn index_value(container : @mg.Value, index : @mg.Value) -> @mg.Value {
+  match (container, index) {
+    (@mg.VList(items), @mg.VInt(i)) => {
+      let n = items.length()
+      let mut idx = i.to_int()
+      if idx < 0 {
+        idx = n + idx
+      }
+      if idx < 0 || idx >= n {
+        @mg.VNull
+      } else {
+        items[idx]
+      }
+    }
+    (@mg.VStr(s), @mg.VInt(i)) => {
+      let chars = Array::from_iter(s.iter())
+      let n = chars.length()
+      let mut idx = i.to_int()
+      if idx < 0 {
+        idx = n + idx
+      }
+      if idx < 0 || idx >= n {
+        @mg.VNull
+      } else {
+        @mg.VStr(String::from_array([chars[idx]]))
+      }
+    }
+    _ => @mg.VNull
+  }
+}
+
+///|
+fn slice_value(
+  container : @mg.Value,
+  from : @mg.Value,
+  upto : @mg.Value,
+) -> @mg.Value {
+  match container {
+    @mg.VList(items) => {
+      let n = items.length()
+      let start = match from {
+        @mg.VInt(i) => normalize_index(i.to_int(), n)
+        _ => 0
+      }
+      let stop = match upto {
+        @mg.VInt(i) => normalize_index(i.to_int(), n)
+        _ => n
+      }
+      let out : Array[@mg.Value] = []
+      let mut i = start
+      while i < stop && i < n {
+        out.push(items[i])
+        i = i + 1
+      }
+      @mg.VList(out)
+    }
+    _ => @mg.VNull
+  }
+}
+
+///|
+fn normalize_index(index : Int, length : Int) -> Int {
+  let mut i = index
+  if i < 0 {
+    i = length + i
+  }
+  if i < 0 {
+    0
+  } else if i > length {
+    length
+  } else {
+    i
+  }
+}
+
+///|
+/// `n {.name, alias: expr}` rendered as canonical map text.
+fn map_projection_value(
+  base : Expr,
+  entries : Array[(String, Expr?)],
+  graph : @mg.Graph,
+  binding : Binding,
+) -> @mg.Value {
+  let node_id = match base {
+    EVar(name) =>
+      match binding.nodes.get(name) {
+        Some(id) => Some(id)
+        None => None
+      }
+    _ => None
+  }
+  match node_id {
+    None => @mg.VNull
+    Some(id) => {
+      let node = graph.node(id)
+      let parts : Array[String] = []
+      for (key, value) in entries {
+        if key == "*" {
+          let keys = Array::from_iter(node.props.keys())
+          keys.sort()
+          for k in keys {
+            parts.push(k + ": " + node.props[k].to_cypher())
+          }
+          continue
+        }
+        let rendered = match value {
+          Some(expr) => eval(expr, graph, binding)
+          None => node.prop(key)
+        }
+        parts.push(key + ": " + rendered.to_cypher())
+      }
+      @mg.VStr("{" + join_strings(parts) + "}")
+    }
+  }
+}
+
+///|
+fn join_strings(parts : Array[String]) -> String {
+  let buf = StringBuilder()
+  let mut first = true
+  for part in parts {
+    if !first {
+      buf.write_string(", ")
+    }
+    first = false
+    buf.write_string(part)
+  }
+  buf.to_string()
 }
 
 ///|
@@ -493,6 +680,13 @@ fn eval_binary(
   }
   let l = eval(left, graph, binding)
   let r = eval(right, graph, binding)
+  apply_binop(op, l, r)
+}
+
+///|
+/// Value-level binary operator; shared by scalar evaluation and aggregate
+/// expressions such as count(x) > 0.
+fn apply_binop(op : String, l : @mg.Value, r : @mg.Value) -> @mg.Value {
   match op {
     "=" => bool_or_null(l, r, fn(a, b) { a.equal_value(b) })
     "<>" => bool_or_null(l, r, fn(a, b) { !a.equal_value(b) })
@@ -573,6 +767,16 @@ fn arith(
 ///|
 fn arith_plus(l : @mg.Value, r : @mg.Value) -> @mg.Value {
   match (l, r) {
+    (@mg.VList(a), @mg.VList(b)) => {
+      let out : Array[@mg.Value] = []
+      for item in a {
+        out.push(item)
+      }
+      for item in b {
+        out.push(item)
+      }
+      @mg.VList(out)
+    }
     (@mg.VStr(a), _) => @mg.VStr(a + r.to_display())
     (_, @mg.VStr(b)) => @mg.VStr(l.to_display() + b)
     _ => arith(l, r, fn(a, b) { a + b })

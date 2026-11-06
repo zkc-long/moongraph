@@ -595,12 +595,84 @@ fn Parser::unary(self : Parser) -> Expr raise ParseError {
 ///|
 fn Parser::postfix(self : Parser) -> Expr raise ParseError {
   let mut expr = self.primary()
-  while self.at(Dot) {
-    self.advance()
-    let key = self.expect_text(Ident, "property name")
-    expr = EProp(expr, key)
+  while true {
+    if self.at(Dot) && self.peek().text == "." {
+      self.advance()
+      let key = self.expect_text(Ident, "property name")
+      expr = EProp(expr, key)
+      continue
+    }
+    if self.at(LBracket) {
+      self.advance()
+      // Slice forms: [..hi], [lo..hi], [lo..]
+      if self.at(Dot) && self.peek().text == ".." {
+        self.advance()
+        let hi = self.expr()
+        self.expect(RBracket, "]")
+        expr = ESlice(expr, None, Some(hi))
+        continue
+      }
+      let lo = self.expr()
+      if self.at(Dot) && self.peek().text == ".." {
+        self.advance()
+        let hi = if self.at(RBracket) { None } else { Some(self.expr()) }
+        self.expect(RBracket, "]")
+        expr = ESlice(expr, Some(lo), hi)
+        continue
+      }
+      self.expect(RBracket, "]")
+      expr = EIndex(expr, lo)
+      continue
+    }
+    if self.at(Colon) {
+      self.advance()
+      let labels : Array[String] = []
+      labels.push(self.expect_text(Ident, "label"))
+      while self.at(Colon) {
+        self.advance()
+        labels.push(self.expect_text(Ident, "label"))
+      }
+      expr = EHasLabel(expr, labels)
+      continue
+    }
+    if self.at(LBrace) {
+      let entries = self.map_projection()
+      expr = EMapProj(expr, entries)
+      continue
+    }
+    break
   }
   expr
+}
+
+///|
+/// `n {.name, .*, alias: expr}` projection entries.
+fn Parser::map_projection(self : Parser) -> Array[(String, Expr?)] raise ParseError {
+  self.expect(LBrace, "{")
+  let entries : Array[(String, Expr?)] = []
+  while !self.at(RBrace) {
+    if self.at(Dot) {
+      self.advance()
+      if self.at(Star) {
+        self.advance()
+        entries.push(("*", None))
+      } else {
+        let key = self.expect_text(Ident, "property name")
+        entries.push((key, None))
+      }
+    } else {
+      let key = self.expect_text(Ident, "property name")
+      self.expect(Colon, ":")
+      entries.push((key, Some(self.expr())))
+    }
+    if self.at(Comma) {
+      self.advance()
+    } else {
+      break
+    }
+  }
+  self.expect(RBrace, "}")
+  entries
 }
 
 ///|
@@ -645,6 +717,26 @@ fn Parser::primary(self : Parser) -> Expr raise ParseError {
     }
     LBracket => {
       self.advance()
+      // List comprehension: [x IN list WHERE pred | projection]
+      if self.at(Ident) && self.tokens[self.pos + 1].kind == KwIn {
+        let variable = self.take().text
+        self.advance()
+        let source = self.expr()
+        let predicate = if self.at(KwWhere) {
+          self.advance()
+          Some(self.expr())
+        } else {
+          None
+        }
+        let projection = if self.at(Pipe) {
+          self.advance()
+          self.expr()
+        } else {
+          EVar(variable)
+        }
+        self.expect(RBracket, "]")
+        return EListComp(variable, source, predicate, projection)
+      }
       let items : Array[Expr] = []
       if !self.at(RBracket) {
         items.push(self.expr())

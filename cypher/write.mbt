@@ -91,7 +91,10 @@ fn create_pattern(
       let labels = pattern.start.labels.copy()
       let props : Map[String, @mg.Value] = Map([])
       for (key, expr) in pattern.start.props {
-        props[key] = eval(expr, graph, current)
+        let value = eval(expr, graph, current)
+        if !(value is @mg.VNull) {
+          props[key] = value
+        }
       }
       let id = graph.add_node(labels, props)
       current = current.clone()
@@ -108,7 +111,10 @@ fn create_pattern(
         let labels = hop.node.labels.copy()
         let props : Map[String, @mg.Value] = Map([])
         for (key, expr) in hop.node.props {
-          props[key] = eval(expr, graph, current)
+          let value = eval(expr, graph, current)
+          if !(value is @mg.VNull) {
+            props[key] = value
+          }
         }
         let id = graph.add_node(labels, props)
         current = current.clone()

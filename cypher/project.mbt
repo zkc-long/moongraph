@@ -35,7 +35,7 @@ fn project(
   let columns = query.items.map(fn(item) { item.col })
   let mut has_aggregate = false
   for item in query.items {
-    if is_aggregate(item.expr) {
+    if contains_aggregate(item.expr) {
       has_aggregate = true
     }
   }
@@ -156,8 +156,8 @@ fn group_bindings(
     let values : Array[@mg.Value] = []
     let mut ki = 0
     for item in query.items {
-      if is_aggregate(item.expr) {
-        values.push(fold(item.expr, graph, members))
+      if contains_aggregate(item.expr) {
+        values.push(eval_group(item.expr, graph, members))
       } else {
         values.push(keys[ki])
         ki = ki + 1
@@ -443,4 +443,101 @@ pub fn QueryResult::to_json(self : QueryResult) -> String {
   }
   buf.write_string("]}")
   buf.to_string()
+}
+
+///|
+/// True when the expression contains an aggregate anywhere (e.g. `count(x) > 0`).
+fn contains_aggregate(expr : Expr) -> Bool {
+  match expr {
+    EFunc(name, args) => {
+      if is_aggregate_name(name) {
+        return true
+      }
+      for arg in args {
+        if contains_aggregate(arg) {
+          return true
+        }
+      }
+      false
+    }
+    EBin(_, l, r) => contains_aggregate(l) || contains_aggregate(r)
+    ENot(e) => contains_aggregate(e)
+    EIsNull(e, _) => contains_aggregate(e)
+    EList(items) => {
+      for item in items {
+        if contains_aggregate(item) {
+          return true
+        }
+      }
+      false
+    }
+    EIndex(a, b) => contains_aggregate(a) || contains_aggregate(b)
+    ESlice(a, b, c) =>
+      contains_aggregate(a) ||
+      (match b {
+        Some(e) => contains_aggregate(e)
+        None => false
+      }) ||
+      (match c {
+        Some(e) => contains_aggregate(e)
+        None => false
+      })
+    _ => false
+  }
+}
+
+///|
+fn is_aggregate_name(name : String) -> Bool {
+  name == "count" ||
+  name == "sum" ||
+  name == "avg" ||
+  name == "min" ||
+  name == "max" ||
+  name == "collect"
+}
+
+///|
+/// Evaluate a projection item in the context of a group: aggregates fold over
+/// the group, everything else recurses so `count(x) > 0` works.
+fn eval_group(
+  expr : Expr,
+  graph : @mg.Graph,
+  members : Array[Binding],
+) -> @mg.Value {
+  match expr {
+    EFunc(name, _) =>
+      if is_aggregate_name(name) {
+        fold(expr, graph, members)
+      } else {
+        eval(expr, graph, sample(members))
+      }
+    EBin(op, l, r) =>
+      apply_binop(op, eval_group(l, graph, members), eval_group(r, graph, members))
+    ENot(e) =>
+      match eval_group(e, graph, members) {
+        @mg.VBool(b) => @mg.VBool(!b)
+        _ => @mg.VNull
+      }
+    EIsNull(e, negated) => {
+      let is_null = eval_group(e, graph, members) is @mg.VNull
+      @mg.VBool(if negated { !is_null } else { is_null })
+    }
+    EList(items) => {
+      let out : Array[@mg.Value] = []
+      for item in items {
+        out.push(eval_group(item, graph, members))
+      }
+      @mg.VList(out)
+    }
+    _ => eval(expr, graph, sample(members))
+  }
+}
+
+///|
+fn sample(members : Array[Binding]) -> Binding {
+  if members.length() == 0 {
+    empty_binding()
+  } else {
+    members[0]
+  }
 }

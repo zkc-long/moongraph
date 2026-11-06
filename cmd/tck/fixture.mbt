@@ -78,3 +78,11 @@ fn build_fixture() -> @mg.Graph {
   }
   graph
 }
+
+///|
+/// Experimental alternative: a single empty node.
+fn build_single_node() -> @mg.Graph {
+  let graph = @mg.Graph::new()
+  ignore(graph.add_node([], Map([])))
+  graph
+}

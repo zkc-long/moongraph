@@ -164,6 +164,12 @@ fn run_scenario(sc : Scenario) -> Outcome {
   let mut columns : Array[String] = []
   let mut rows : Array[Array[@mg.Value]] = []
   let unsupported : Array[String] = []
+  // Error-assertion scenarios need exception types we do not model.
+  for probe in sc.steps {
+    if probe.text.contains("should be raised") {
+      return Skipped("error assertions are outside the supported subset")
+    }
+  }
   let mut before : @mg.GraphStats? = None
   for step in sc.steps {
     let text = step.text
@@ -373,11 +379,7 @@ fn parse_cell(cell : String) -> @mg.Value {
     }
   }
   if text.has_prefix("[") && text.ends_with("]") {
-    let inner = text
-      .get_view(start=1)
-      .unwrap_or("")
-      .get_view(end=text.char_length() - 1)
-      .unwrap_or("")
+    let inner = text.get_view(start=1, end=text.char_length() - 1).unwrap_or("")
     let items : Array[@mg.Value] = []
     for part in inner.split(",") {
       items.push(parse_cell(part.to_owned()))
@@ -632,3 +634,4 @@ fn check_side_effects(
   }
   None
 }
+

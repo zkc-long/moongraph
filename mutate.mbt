@@ -88,6 +88,10 @@ pub fn Graph::set_node_prop(
     return
   }
   let node = self.nodes[id]
+  if value is VNull {
+    ignore(node.props.remove(key))
+    return
+  }
   node.props[key] = value
   self.index_property(id, key, value)
 }
@@ -172,7 +176,6 @@ pub struct GraphStats {
 pub fn Graph::stats(self : Graph) -> GraphStats {
   let mut nodes = 0
   let mut properties = 0
-  let mut labels = 0
   let mut relational = 0
   let mut i = 0
   while i < self.node_count() {
@@ -180,7 +183,6 @@ pub fn Graph::stats(self : Graph) -> GraphStats {
       let node = self.node(i)
       nodes = nodes + 1
       properties = properties + node.props.length()
-      labels = labels + node.labels.length()
     }
     i = i + 1
   }
@@ -193,5 +195,7 @@ pub fn Graph::stats(self : Graph) -> GraphStats {
     }
     e = e + 1
   }
+  // TCK counts distinct label *names* added, not label assignments.
+  let labels = self.labels().length()
   { nodes, relationships: relational, properties, labels, }
 }
