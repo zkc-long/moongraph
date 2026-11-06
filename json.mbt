@@ -1,4 +1,4 @@
-﻿// A small, dependency-free JSON reader/writer.
+// A small, dependency-free JSON reader/writer.
 //
 // MoonGraph uses JSON as its interchange format for importing graphs
 // (JSON Lines) and for human readable snapshots. The reader is a strict
@@ -31,7 +31,7 @@ pub struct JsonParser {
 }
 
 ///|
-pub fn Json::parse(text : String) -> Json raise JsonError {
+pub fn Json::parse(text : StringView) -> Json raise JsonError {
   let parser = { chars: Array::from_iter(text.iter()), pos: 0, depth_limit: 128 }
   parser.skip_ws()
   let value = parser.parse_value(0)
