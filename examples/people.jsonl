@@ -1,0 +1,9 @@
+{"kind":"node","id":"ada","labels":["Person"],"props":{"name":"Ada","age":36}}
+{"kind":"node","id":"bob","labels":["Person"],"props":{"name":"Bob","age":41}}
+{"kind":"node","id":"cy","labels":["Person"],"props":{"name":"Cy","age":29}}
+{"kind":"node","id":"acme","labels":["Company"],"props":{"name":"Acme"}}
+{"kind":"edge","from":"ada","to":"bob","type":"KNOWS","props":{}}
+{"kind":"edge","from":"bob","to":"cy","type":"KNOWS","props":{}}
+{"kind":"edge","from":"ada","to":"acme","type":"WORKS_AT","props":{"since":2021}}
+{"kind":"edge","from":"bob","to":"acme","type":"WORKS_AT","props":{"since":2019}}
+{"kind":"edge","from":"cy","to":"acme","type":"WORKS_AT","props":{"since":2024}}
