@@ -166,6 +166,7 @@ fn match_pattern(
           graph.node_text(node),
           0,
           pattern.variable,
+          [],
           results,
         )
       None => ()
@@ -225,6 +226,7 @@ fn expand_hops(
   path_text : String,
   path_len : Int32,
   path_var : String,
+  used : Array[Int32],
   out : Array[Binding],
 ) -> Unit {
   if index >= hops.length() {
@@ -239,6 +241,18 @@ fn expand_hops(
   }
   let hop = hops[index]
   for (target, rel_ids) in follow(graph, current, hop.rel) {
+    // Relationship uniqueness: a pattern may not traverse the same edge twice.
+    let mut reused = false
+    for rel_id in rel_ids {
+      for seen_id in used {
+        if rel_id == seen_id {
+          reused = true
+        }
+      }
+    }
+    if reused {
+      continue
+    }
     let mut next = binding
     if hop.rel.variable != "" {
       next = next.clone()
@@ -274,6 +288,7 @@ fn expand_hops(
             extended,
             path_len + rel_ids.length(),
             path_var,
+            append_ids(used, rel_ids),
             out,
           )
         None => ()
@@ -1093,4 +1108,16 @@ fn type_ok(graph : @mg.Graph, edge_id : Int32, rel : RelPat) -> Bool {
     }
   }
   false
+}
+
+///|
+fn append_ids(base : Array[Int32], extra : Array[Int32]) -> Array[Int32] {
+  let out : Array[Int32] = []
+  for id in base {
+    out.push(id)
+  }
+  for id in extra {
+    out.push(id)
+  }
+  out
 }
