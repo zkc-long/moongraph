@@ -1,0 +1,25 @@
+MoonGraph
+Copyright 2026 zkc-long
+
+This product includes software developed at the openCypher project
+(https://github.com/opencypher/openCypher), licensed under the Apache
+License, Version 2.0.
+
+The following files are vendored verbatim from the openCypher TCK and are
+used as a conformance test corpus:
+
+  conformance/features/Match1.feature
+  conformance/features/Match2.feature
+  conformance/features/Match3.feature
+  conformance/features/Return1.feature
+  conformance/features/Return2.feature
+  conformance/features/Create1.feature
+  conformance/features/Set1.feature
+  conformance/features/Delete1.feature
+  conformance/features/Merge1.feature
+  conformance/graphs/binary-tree-1.cypher
+  conformance/graphs/binary-tree-1.json
+
+They are unmodified except that nothing has been changed at all: the runner
+reads them as they are published. Attribution for the original work is kept in
+the file headers and in conformance/README.md.

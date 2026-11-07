@@ -72,7 +72,7 @@ Rendering the graph:
 ## Tests
 
 ```bash
-moon test            # 73 unit and end-to-end tests
+moon test            # 92 unit and end-to-end tests
 ```
 
 ## Conformance

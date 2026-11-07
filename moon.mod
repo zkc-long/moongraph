@@ -9,7 +9,7 @@ version = "0.1.0"
 
 readme = "README.mbt.md"
 
-repository = "https://github.com/OWNER/moongraph"
+repository = "https://github.com/zkc-long/moongraph"
 
 license = "Apache-2.0"
 
