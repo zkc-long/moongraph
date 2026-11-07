@@ -1,4 +1,4 @@
 import {
-  "moongraph" @mg,
+  "quiver" @mg,
   "moonbitlang/core/string",
 }

@@ -581,8 +581,20 @@ async fn main {
         }
       }
     }
-    let parts = Array::from_iter(path.split("/"))
-    let short = parts[parts.length() - 1].to_owned()
+    // Windows paths use backslashes; normalise so the report shows a bare
+    // file name instead of an absolute machine-specific path.
+    // Report only the file name: absolute paths leak the author's disk
+    // layout, and Windows separators would defeat a plain split.
+    let mut start = 0
+    let mut pos = 0
+    let chars = Array::from_iter(path.iter())
+    while pos < chars.length() {
+      if chars[pos] == '\\' || chars[pos] == '/' {
+        start = pos + 1
+      }
+      pos = pos + 1
+    }
+    let short = path.get_view(start=start).unwrap_or("").to_owned()
     report.write_string(
       "| \{short} | \{file_pass + file_fail + file_skip} | \{file_pass} | \{file_fail} | \{file_skip} |\n",
     )

@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "moongraph/cmd/tck"
+package "quiver/cmd/tck"
 
 // Values
 

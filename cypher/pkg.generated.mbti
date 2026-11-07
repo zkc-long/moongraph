@@ -1,16 +1,18 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "moongraph/cypher"
+package "quiver/cypher"
 
 // Values
 pub fn expr_text(Expr) -> String
 
-pub fn parse_node_expected(String) -> (Array[String], Map[String, @moongraph.Value])?
+pub fn parse_node_expected(String) -> (Array[String], Map[String, @quiver.Value])?
 
 pub fn parse_query(String) -> Query raise ParseError
 
-pub fn parse_rel_expected(String) -> (String, Map[String, @moongraph.Value])?
+pub fn parse_rel_expected(String) -> (String, Map[String, @quiver.Value])?
 
-pub fn run(@moongraph.Graph, String) -> QueryResult raise ParseError
+pub fn run(@quiver.Graph, String) -> QueryResult raise ParseError
+
+pub fn run_script(@quiver.Graph, Array[String]) -> QueryResult raise ParseError
 
 pub fn tokenize(String) -> Array[Token] raise LexError
 
@@ -29,7 +31,7 @@ pub suberror ParseError {
 
 // Types and methods
 pub struct Binding {
-  vals : Map[String, @moongraph.Value]
+  vals : Map[String, @quiver.Value]
   nodes : Map[String, Int32]
   rels : Map[String, Int32]
   paths : Map[String, String]
@@ -43,7 +45,7 @@ pub enum Dir {
 }
 
 pub enum Expr {
-  ELit(@moongraph.Value)
+  ELit(@quiver.Value)
   EVar(String)
   EProp(Expr, String)
   EBin(String, Expr, Expr)
@@ -51,6 +53,12 @@ pub enum Expr {
   EIsNull(Expr, Bool)
   EFunc(String, Array[Expr])
   EList(Array[Expr])
+  EIndex(Expr, Expr)
+  ESlice(Expr, Expr?, Expr?)
+  EHasLabel(Expr, Array[String])
+  EListComp(String, Expr, Expr?, Expr)
+  EMapProj(Expr, Array[(String, Expr?)])
+  EMapLit(Array[(String, Expr)])
 }
 
 pub struct Hop {
@@ -86,7 +94,8 @@ pub struct Query {
   with_ : WithClause?
   post : Array[PathPat]
   post_where : Expr?
-  write : WriteClause?
+  writes : Array[WriteClause]
+  unwinds : Array[(Expr, String)]
   has_return : Bool
   where_ : Expr?
   items : Array[ReturnItem]
@@ -98,7 +107,7 @@ pub struct Query {
 
 pub struct QueryResult {
   columns : Array[String]
-  rows : Array[Array[@moongraph.Value]]
+  rows : Array[Array[@quiver.Value]]
 }
 pub fn QueryResult::column_count(Self) -> Int32
 pub fn QueryResult::column_index(Self, String) -> Int32?
@@ -185,6 +194,7 @@ pub enum TokKind {
   KwDelete
   KwDetach
   KwWith
+  KwUnwind
 }
 
 pub struct Token {

@@ -275,7 +275,7 @@ pub fn load_registry_records(text : String) -> Graph raise LoadError {
 /// Export the graph as Graphviz DOT for visual inspection.
 pub fn to_dot(graph : Graph) -> String {
   let buf = StringBuilder()
-  buf.write_string("digraph moongraph {\n")
+  buf.write_string("digraph quiver {\n")
   buf.write_string(
     "  rankdir=LR;\n  node [shape=box, fontname=\"monospace\"];\n",
   )

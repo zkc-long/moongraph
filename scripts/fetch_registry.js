@@ -13,7 +13,7 @@ const LIMIT = Number(process.argv[2] || 120);
 function get(url) {
   return new Promise((resolve, reject) => {
     https
-      .get(url, { headers: { "user-agent": "moongraph-dataset/0.1" } }, (res) => {
+      .get(url, { headers: { "user-agent": "quiver-dataset/0.1" } }, (res) => {
         let body = "";
         res.on("data", (d) => (body += d));
         res.on("end", () => {

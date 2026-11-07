@@ -1,27 +1,27 @@
-// MoonGraph command line interface.
+// Quiver command line interface.
 //
-//   moongraph query <graph.jsonl> <cypher> [--json]
-//   moongraph info <graph.jsonl>
-//   moongraph import <graph.jsonl>
-//   moongraph registry <records.jsonl>
-//   moongraph bench <graph.jsonl> <cypher> [--iters N]
+//   quiver query <graph.jsonl> <cypher> [--json]
+//   quiver info <graph.jsonl>
+//   quiver import <graph.jsonl>
+//   quiver registry <records.jsonl>
+//   quiver bench <graph.jsonl> <cypher> [--iters N]
 //
 // The CLI is a thin shell around the library: parsing, planning and execution
-// all live in the `moongraph` packages, so the same engine is usable from
+// all live in the `quiver` packages, so the same engine is usable from
 // tests and from other MoonBit programs.
 
 ///|
 fn usage() -> Unit {
-  println("MoonGraph - a property graph database with a Cypher subset")
+  println("Quiver - a property graph database with a Cypher subset")
   println("")
   println("Usage:")
-  println("  moongraph query    <graph.jsonl> <cypher> [--json]")
-  println("  moongraph info     <graph.jsonl>")
-  println("  moongraph import   <graph.jsonl>")
-  println("  moongraph registry <records.jsonl>")
-  println("  moongraph dot      <graph.jsonl>")
-  println("  moongraph html     <graph.jsonl> > graph.html")
-  println("  moongraph bench    <graph.jsonl> <cypher> [--iters N]")
+  println("  quiver query    <graph.jsonl> <cypher> [--json]")
+  println("  quiver info     <graph.jsonl>")
+  println("  quiver import   <graph.jsonl>")
+  println("  quiver registry <records.jsonl>")
+  println("  quiver dot      <graph.jsonl>")
+  println("  quiver html     <graph.jsonl> > graph.html")
+  println("  quiver bench    <graph.jsonl> <cypher> [--iters N]")
 }
 
 ///|
@@ -123,7 +123,7 @@ async fn main {
         return
       }
       match read_graph(args[2]) {
-        Some(graph) => println(@mg.to_html(graph, "MoonGraph: " + args[2]))
+        Some(graph) => println(@mg.to_html(graph, "Quiver: " + args[2]))
         None => ()
       }
     }

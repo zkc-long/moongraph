@@ -1,6 +1,6 @@
 import {
-  "moongraph" @mg,
-  "moongraph/cypher",
+  "quiver" @mg,
+  "quiver/cypher",
   "moonbitlang/core/env",
   "moonbitlang/core/string",
   "moonbitlang/core/async",

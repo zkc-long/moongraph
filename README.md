@@ -1,11 +1,11 @@
-[![CI](https://github.com/zkc-long/moongraph/actions/workflows/ci.yml/badge.svg)](https://github.com/zkc-long/moongraph/actions/workflows/ci.yml)
+[![CI](https://github.com/zkc-long/quiver/actions/workflows/ci.yml/badge.svg)](https://github.com/zkc-long/quiver/actions/workflows/ci.yml)
 
-# MoonGraph
+# Quiver
 
 A property-graph database with a Cypher subset engine, written in **pure
 MoonBit** with zero third-party dependencies.
 
-MoonGraph stores nodes and relationships with typed properties, indexes them,
+Quiver stores nodes and relationships with typed properties, indexes them,
 and answers `MATCH ... WHERE ... RETURN` queries — with `CREATE`, `MERGE`,
 `SET` and `DELETE` for the write side.
 
@@ -37,7 +37,7 @@ let result = @cypher.run(g, "MATCH (a:Person)-[:KNOWS]->(b) RETURN a.name, b.nam
 * label predicates `(n:Label)`, map projection `n {.name, alias: expr}`, aggregates inside expressions
 * relationship uniqueness inside a pattern (a pattern cannot traverse the same edge twice)
 * `shortestPath((a)-[:T*]-(b))` pattern form, plus the `shortestPath(a, b)` scalar
-* a CLI (`moongraph query|info|import|registry|dot|html|bench`) that runs natively
+* a CLI (`quiver query|info|import|registry|dot|html|bench`) that runs natively
 * an openCypher TCK subset runner (`cmd/tck`) with an explicit skip taxonomy
 
 ## What is deliberately out of scope
@@ -76,7 +76,7 @@ Rendering the graph:
 Dependency analysis over the real mooncakes registry (178 nodes / 76 edges):
 
 ```
-$ moongraph query examples/mooncakes.jsonl \
+$ quiver query examples/mooncakes.jsonl \
   "MATCH (d:Package)-[:DEPENDS_ON]->(p:Package)
    RETURN p.name AS package, count(d) AS dependents
    ORDER BY dependents DESC LIMIT 5"
@@ -96,7 +96,7 @@ $ moongraph query examples/mooncakes.jsonl \
 Blast radius of a yank (variable-length reachability):
 
 ```
-$ moongraph query examples/mooncakes.jsonl \
+$ quiver query examples/mooncakes.jsonl \
   "MATCH (v:Package {name:'mizchi/json'})<-[:DEPENDS_ON*1..3]-(b:Package)
    RETURN DISTINCT b.name AS affected ORDER BY affected"
 
@@ -111,7 +111,7 @@ $ moongraph query examples/mooncakes.jsonl \
 Path values carry their hop count:
 
 ```
-$ moongraph query examples/people.jsonl \
+$ quiver query examples/people.jsonl \
   "MATCH p = (a:Person {name:'Ada'})-[:KNOWS*1..2]->(b)
    RETURN b.name AS reachable, length(p) AS hops ORDER BY hops"
 

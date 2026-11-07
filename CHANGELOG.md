@@ -1,8 +1,20 @@
 # Changelog
 
-All notable changes to MoonGraph are recorded here. The format follows
+All notable changes to Quiver are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.4.0] - 2026-11-07
+
+### Changed
+
+- **Renamed the project to Quiver.** The module is now `quiver`, the CLI is
+  `quiver`, and every package path moved from `moongraph/...` to `quiver/...`.
+  The reason is naming clarity: mooncakes already hosts a graph *algorithm*
+  package called `moongraph`, and two different things under one word costs
+  readers more than the rename costs us. `quiver` is the mathematical term for
+  a directed multigraph, which is exactly the data model here.
+- Repository moved to https://github.com/zkc-long/quiver
 
 ## [0.3.0] - 2026-11-07
 

@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "moongraph"
+package "quiver"
 
 // Values
 pub fn compare_strings(String, String) -> Int32
@@ -59,17 +59,22 @@ pub struct Graph {
   prop_index : Map[String, Map[String, Array[Int32]]]
   alive_nodes : Array[Bool]
   alive_edges : Array[Bool]
+  mut side_effects : Map[String, Int32]
+  mut side_effect_keys : Map[String, Bool]
+  mut baseline_labels : Map[String, Bool]
 }
 pub fn Graph::add_edge(Self, String, Int32, Int32, Map[String, Value]) -> Int32 raise GraphError
 pub fn Graph::add_node(Self, Array[String], Map[String, Value]) -> Int32
 pub fn Graph::add_node_label(Self, Int32, String) -> Unit
 pub fn Graph::alive_edge_count(Self) -> Int32
 pub fn Graph::alive_node_count(Self) -> Int32
+pub fn Graph::bump_effect(Self, String) -> Unit
 pub fn Graph::delete_edge(Self, Int32) -> Unit
 pub fn Graph::delete_node(Self, Int32) -> Unit
 pub fn Graph::edge(Self, Int32) -> Edge
 pub fn Graph::edge_count(Self) -> Int32
 pub fn Graph::edge_types(Self) -> Array[String]
+pub fn Graph::effect_count(Self, String) -> Int32
 pub fn Graph::ensure_node(Self, Array[String], Map[String, Value]) -> Int32
 pub fn Graph::in_edge_ids(Self, Int32) -> Array[Int32]
 pub fn Graph::in_neighbors(Self, Int32) -> Array[(Int32, Int32)]
@@ -82,10 +87,14 @@ pub fn Graph::node(Self, Int32) -> Node
 pub fn Graph::node_count(Self) -> Int32
 pub fn Graph::node_text(Self, Int32) -> String
 pub fn Graph::nodes_with_label(Self, String) -> Array[Int32]
+pub fn Graph::note_effect(Self, String, String) -> Unit
+pub fn Graph::note_label_added(Self, String) -> Unit
+pub fn Graph::note_label_removed(Self, String) -> Unit
 pub fn Graph::out_edge_ids(Self, Int32) -> Array[Int32]
 pub fn Graph::out_neighbors(Self, Int32) -> Array[(Int32, Int32)]
 pub fn Graph::rel_text(Self, Int32) -> String
 pub fn Graph::remove_node_prop(Self, Int32, String) -> Unit
+pub fn Graph::reset_side_effects(Self) -> Unit
 pub fn Graph::set_edge_prop(Self, Int32, String, Value) -> Unit
 pub fn Graph::set_node_prop(Self, Int32, String, Value) -> Unit
 pub fn Graph::stats(Self) -> GraphStats

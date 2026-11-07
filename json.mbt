@@ -1,6 +1,6 @@
 // A small, dependency-free JSON reader/writer.
 //
-// MoonGraph uses JSON as its interchange format for importing graphs
+// Quiver uses JSON as its interchange format for importing graphs
 // (JSON Lines) and for human readable snapshots. The reader is a strict
 // recursive descent parser with a configurable nesting limit, so that a
 // malformed import cannot blow the stack.

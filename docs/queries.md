@@ -4,7 +4,7 @@ Regenerate the dataset first:
 
 ```bash
 node scripts/fetch_registry.js 120 > examples/mooncakes.registry.jsonl
-moongraph registry examples/mooncakes.registry.jsonl > examples/mooncakes.jsonl
+quiver registry examples/mooncakes.registry.jsonl > examples/mooncakes.jsonl
 ```
 
 ## 1. Most depended-upon packages
@@ -62,7 +62,7 @@ MATCH (p:Package) RETURN count(p) AS packages
 Any query accepts `--json`:
 
 ```bash
-moongraph query examples/mooncakes.jsonl \
+quiver query examples/mooncakes.jsonl \
   "MATCH (p:Package) RETURN count(p) AS packages" --json
 ```
 

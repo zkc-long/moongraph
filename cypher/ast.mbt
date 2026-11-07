@@ -196,7 +196,7 @@ pub struct SetItem {
 }
 
 ///|
-/// The write clause of a query. MoonGraph keeps at most one write clause per
+/// The write clause of a query. Quiver keeps at most one write clause per
 /// query, which covers the CREATE/MERGE/SET/DELETE forms used by the test suite.
 pub enum WriteClause {
   WCreate(Array[PathPat])
