@@ -1,3 +1,5 @@
+[![CI](https://github.com/zkc-long/moongraph/actions/workflows/ci.yml/badge.svg)](https://github.com/zkc-long/moongraph/actions/workflows/ci.yml)
+
 # MoonGraph
 
 A property-graph database with a Cypher subset engine, written in **pure
