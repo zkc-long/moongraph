@@ -70,6 +70,8 @@ pub struct Graph {
   prop_index : Map[String, Map[String, Array[Int32]]]
   alive_nodes : Array[Bool]
   alive_edges : Array[Bool]
+  mut side_effects : Map[String, Int32]
+  mut side_effect_keys : Map[String, Bool]
 }
 
 ///|
@@ -83,6 +85,8 @@ pub fn Graph::new() -> Graph {
     prop_index: Map([]),
     alive_nodes: [],
     alive_edges: [],
+    side_effects: Map([]),
+    side_effect_keys: Map([]),
   }
 }
 
@@ -116,15 +120,18 @@ pub fn Graph::add_node(
   let id = self.nodes.length()
   self.nodes.push({ id, labels, props, })
   self.alive_nodes.push(true)
+  self.bump_effect("+nodes")
   self.out_edges.push([])
   self.in_edges.push([])
   for label in labels {
+    self.note_effect("+labels", "L:" + label)
     match self.label_index.get(label) {
       Some(ids) => ids.push(id)
       None => self.label_index[label] = [id]
     }
   }
   for key, value in props {
+    self.note_effect("+properties", "P:" + id.to_string() + ":" + key)
     let encoded = encode_index_key(value)
     if encoded != "" {
       let by_key = match self.prop_index.get(key) {
@@ -163,6 +170,10 @@ pub fn Graph::add_edge(
   let id = self.edges.length()
   self.edges.push({ id, etype, src, dst, props, })
   self.alive_edges.push(true)
+  self.bump_effect("+relationships")
+  for key, _value in props {
+    self.note_effect("+properties", "R:" + id.to_string() + ":" + key)
+  }
   self.out_edges[src].push(id)
   self.in_edges[dst].push(id)
   id

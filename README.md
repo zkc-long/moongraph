@@ -69,6 +69,58 @@ Rendering the graph:
 ./_build/native/debug/build/cmd/main/main.exe dot examples/mooncakes.jsonl | dot -Tsvg > graph.svg
 ```
 
+## What it looks like
+
+Dependency analysis over the real mooncakes registry (178 nodes / 76 edges):
+
+```
+$ moongraph query examples/mooncakes.jsonl \
+  "MATCH (d:Package)-[:DEPENDS_ON]->(p:Package)
+   RETURN p.name AS package, count(d) AS dependents
+   ORDER BY dependents DESC LIMIT 5"
+
++-----------------------+------------+
+| package               | dependents |
++-----------------------+------------+
+| bobzhang/toml         | 10         |
+| moonrockz/expect      | 9          |
+| moonbitstack/moonjson | 6          |
+| totto2727/lens        | 4          |
+| kawaz/grapheme        | 4          |
++-----------------------+------------+
+5 row(s)
+```
+
+Blast radius of a yank (variable-length reachability):
+
+```
+$ moongraph query examples/mooncakes.jsonl \
+  "MATCH (v:Package {name:'mizchi/json'})<-[:DEPENDS_ON*1..3]-(b:Package)
+   RETURN DISTINCT b.name AS affected ORDER BY affected"
+
++--------------------------+
+| affected                 |
++--------------------------+
+| yuzhiblue/moon-watermark |
++--------------------------+
+1 row(s)
+```
+
+Path values carry their hop count:
+
+```
+$ moongraph query examples/people.jsonl \
+  "MATCH p = (a:Person {name:'Ada'})-[:KNOWS*1..2]->(b)
+   RETURN b.name AS reachable, length(p) AS hops ORDER BY hops"
+
++-----------+------+
+| reachable | hops |
++-----------+------+
+| Bob       | 1    |
+| Cy        | 2    |
++-----------+------+
+2 row(s)
+```
 ## Tests
 
 ```bash

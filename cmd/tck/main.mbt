@@ -197,6 +197,7 @@ fn run_scenario(sc : Scenario) -> Outcome {
         Some(why) => return Skipped(why)
         None => ()
       }
+      graph.reset_side_effects()
       before = Some(graph.stats())
       let result = @cypher.run(graph, step.doc) catch {
         _ =>
@@ -597,16 +598,16 @@ fn check_side_effects(
     Some(stats) => stats
     None => return None
   }
-  let now = graph.stats()
-  let dn = now.nodes - old.nodes
-  let dr = now.relationships - old.relationships
-  let dp = now.properties - old.properties
-  let dl = now.labels - old.labels
+  ignore(old)
+  let names : Array[String] = [
+    "+nodes", "-nodes", "+relationships", "-relationships", "+properties", "-properties",
+    "+labels", "-labels",
+  ]
   if table.length() == 0 {
-    if dn != 0 || dr != 0 || dp != 0 || dl != 0 {
-      return Some(
-        "expected no side effects, got nodes=\{dn} rels=\{dr} props=\{dp} labels=\{dl}",
-      )
+    for name in names {
+      if graph.effect_count(name) != 0 {
+        return Some("expected no side effects, got \{name}")
+      }
     }
     return None
   }
@@ -616,17 +617,7 @@ fn check_side_effects(
     }
     let name = row[0].trim().to_owned()
     let expected = @string.parse_int(row[1].trim()) catch { _ => 0 }
-    let actual = match name {
-      "+nodes" => dn
-      "-nodes" => -dn
-      "+relationships" => dr
-      "-relationships" => -dr
-      "+properties" => dp
-      "-properties" => -dp
-      "+labels" => dl
-      "-labels" => -dl
-      _ => 0
-    }
+    let actual = graph.effect_count(name)
     if actual != expected {
       return Some("side effect \{name}: expected \{expected}, got \{actual}")
     }

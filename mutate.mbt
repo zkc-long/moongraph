@@ -56,6 +56,13 @@ pub fn Graph::delete_node(self : Graph, id : Int32) -> Unit {
     self.delete_edge(edge_id)
   }
   self.alive_nodes[id] = false
+  self.bump_effect("-nodes")
+  for label in self.nodes[id].labels {
+    self.note_effect("-labels", "L:" + label)
+  }
+  for key, _value in self.nodes[id].props {
+    self.note_effect("-properties", "P:" + id.to_string() + ":" + key)
+  }
 }
 
 ///|
@@ -64,6 +71,10 @@ pub fn Graph::delete_edge(self : Graph, id : Int32) -> Unit {
     return
   }
   self.alive_edges[id] = false
+  self.bump_effect("-relationships")
+  for key, _value in self.edges[id].props {
+    self.note_effect("-properties", "R:" + id.to_string() + ":" + key)
+  }
 }
 
 ///|
@@ -89,9 +100,16 @@ pub fn Graph::set_node_prop(
   }
   let node = self.nodes[id]
   if value is VNull {
+    if node.props.get(key) is Some(_) {
+      self.note_effect("-properties", "P:" + id.to_string() + ":" + key)
+    }
     ignore(node.props.remove(key))
     return
   }
+  if node.props.get(key) is Some(existing) && !(existing is VNull) {
+    self.note_effect("-properties", "P:" + id.to_string() + ":" + key)
+  }
+  self.note_effect("+properties", "P:" + id.to_string() + ":" + key)
   node.props[key] = value
   self.index_property(id, key, value)
 }
@@ -198,4 +216,38 @@ pub fn Graph::stats(self : Graph) -> GraphStats {
   // TCK counts distinct label *names* added, not label assignments.
   let labels = self.labels().length()
   { nodes, relationships: relational, properties, labels, }
+}
+
+///|
+/// Reset the write counters so the next query reports its own side effects.
+pub fn Graph::reset_side_effects(self : Graph) -> Unit {
+  self.side_effects = Map([])
+  self.side_effect_keys = Map([])
+}
+
+///|
+/// Side-effect counters keyed like the TCK tables: `+nodes`, `-properties`, ...
+pub fn Graph::effect_count(self : Graph, name : String) -> Int32 {
+  match self.side_effects.get(name) {
+    Some(n) => n
+    None => 0
+  }
+}
+
+///|
+pub fn Graph::bump_effect(self : Graph, name : String) -> Unit {
+  let current = self.effect_count(name)
+  self.side_effects[name] = current + 1
+}
+
+///|
+/// Count an effect at most once per dedupe key, which is how the TCK treats
+/// label names and (entity, property) pairs.
+pub fn Graph::note_effect(self : Graph, name : String, dedupe : String) -> Unit {
+  let dedupe_key = name + "|" + dedupe
+  if self.side_effect_keys.get(dedupe_key).unwrap_or(false) {
+    return
+  }
+  self.side_effect_keys[dedupe_key] = true
+  self.bump_effect(name)
 }
