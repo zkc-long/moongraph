@@ -72,6 +72,7 @@ pub struct Graph {
   alive_edges : Array[Bool]
   mut side_effects : Map[String, Int32]
   mut side_effect_keys : Map[String, Bool]
+  mut baseline_labels : Map[String, Bool]
 }
 
 ///|
@@ -87,6 +88,7 @@ pub fn Graph::new() -> Graph {
     alive_edges: [],
     side_effects: Map([]),
     side_effect_keys: Map([]),
+    baseline_labels: Map([]),
   }
 }
 
@@ -124,7 +126,7 @@ pub fn Graph::add_node(
   self.out_edges.push([])
   self.in_edges.push([])
   for label in labels {
-    self.note_effect("+labels", "L:" + label)
+    self.note_label_added(label)
     match self.label_index.get(label) {
       Some(ids) => ids.push(id)
       None => self.label_index[label] = [id]
@@ -307,7 +309,11 @@ pub fn node_text(labels : Array[String], props : Map[String, Value]) -> String {
   let sorted_labels = labels.copy()
   sorted_labels.sort()
   let buf = StringBuilder()
-  buf.write_string("(:")
+  // `({k: v})` when there is no label, `(:L {k: v})` otherwise.
+  buf.write_string("(")
+  if sorted_labels.length() > 0 {
+    buf.write_string(":")
+  }
   let mut first = true
   for label in sorted_labels {
     if !first {

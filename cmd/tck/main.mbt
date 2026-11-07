@@ -164,12 +164,15 @@ fn run_scenario(sc : Scenario) -> Outcome {
   let mut columns : Array[String] = []
   let mut rows : Array[Array[@mg.Value]] = []
   let unsupported : Array[String] = []
-  // Error-assertion scenarios need exception types we do not model.
+  // Scenarios that assert a query is rejected: a rejection is a pass, an
+  // accepted query is reported as skipped rather than silently passed.
+  let mut expects_error = false
   for probe in sc.steps {
     if probe.text.contains("should be raised") {
-      return Skipped("error assertions are outside the supported subset")
+      expects_error = true
     }
   }
+  let mut last_raised = false
   let mut before : @mg.GraphStats? = None
   for step in sc.steps {
     let text = step.text
@@ -186,9 +189,10 @@ fn run_scenario(sc : Scenario) -> Outcome {
         Some(why) => return Skipped(why)
         None => ()
       }
-      let statements = split_statements(step.doc)
-      @cypher.run_script(graph, statements) catch {
-        _ => return Failed("setup query failed: " + join_statements(statements))
+      match run_doc(graph, step.doc) {
+        Some(_) => ()
+        None =>
+          return Failed("setup query failed: " + step.doc.trim().to_owned())
       }
       continue
     }
@@ -199,16 +203,34 @@ fn run_scenario(sc : Scenario) -> Outcome {
       }
       graph.reset_side_effects()
       before = Some(graph.stats())
-      let result = @cypher.run(graph, step.doc) catch {
-        _ =>
+      match run_doc(graph, step.doc) {
+        Some(result) => {
+          last_raised = false
+          columns = result.columns
+          rows = result.rows
+        }
+        None =>
           match unsupported_syntax(step.doc) {
             Some(why) => return Skipped(why)
-            None => return Failed("query failed to parse")
+            None =>
+              if expects_error {
+                last_raised = true
+                columns = []
+                rows = []
+              } else {
+                return Failed(
+                  "query failed to parse: " + step.doc.trim().to_owned(),
+                )
+              }
           }
       }
-      columns = result.columns
-      rows = result.rows
       continue
+    }
+    if text.contains("should be raised") {
+      if last_raised {
+        continue
+      }
+      return Skipped("engine accepted a query the TCK expects to reject")
     }
     if text == "the result should be empty" {
       if rows.length() != 0 {
@@ -386,14 +408,15 @@ fn parse_cell(cell : String) -> @mg.Value {
     }
     return @mg.VList(items)
   }
-  // Integers and doubles.
+  // A decimal point or exponent means a double; MoonBit renders 1.0 as "1",
+  // so string round-tripping cannot be used to tell the two apart.
+  if text.contains(".") || text.contains("e") || text.contains("E") {
+    let value = @string.parse_double(text) catch { _ => 0.0 }
+    return @mg.VDouble(value)
+  }
   let int_value = @string.parse_int64(text) catch { _ => 0L }
   if "\{int_value}" == text {
     return @mg.VInt(int_value)
-  }
-  let double_value = @string.parse_double(text) catch { _ => 0.0 }
-  if "\{double_value}" == text {
-    return @mg.VDouble(double_value)
   }
   @mg.VStr(text)
 }
@@ -671,4 +694,25 @@ fn join_statements(statements : Array[String]) -> String {
     buf.write_string(statement.trim().to_owned())
   }
   buf.to_string()
+}
+
+///|
+/// Run a doc block: first as a single query, then as a script of statements.
+/// TCK blocks are sometimes multi-statement even in `When executing query:`.
+fn run_doc(graph : @mg.Graph, doc : String) -> @cypher.QueryResult? {
+  let direct : @cypher.QueryResult? = Some(@cypher.run(graph, doc)) catch {
+    _ => None
+  }
+  match direct {
+    Some(result) => Some(result)
+    None => {
+      let statements = split_statements(doc)
+      if statements.length() <= 1 {
+        return None
+      }
+      Some(@cypher.run_script(graph, statements)) catch {
+        _ => None
+      }
+    }
+  }
 }

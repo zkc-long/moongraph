@@ -93,7 +93,7 @@ fn Parser::query(self : Parser) -> Query raise ParseError {
   let patterns : Array[PathPat] = []
   let mut where_ : Expr? = None
   // A query may start with MATCH or with a write clause (`CREATE (n)`).
-  if self.at(KwMatch) {
+  while self.at(KwMatch) {
     self.advance()
     patterns.push(self.pattern())
     while self.at(Comma) {
@@ -102,7 +102,11 @@ fn Parser::query(self : Parser) -> Query raise ParseError {
     }
     if self.at(KwWhere) {
       self.advance()
-      where_ = Some(self.expr())
+      let condition = self.expr()
+      where_ = match where_ {
+        Some(previous) => Some(EBin("AND", previous, condition))
+        None => Some(condition)
+      }
     }
   }
   let mut with_ : WithClause? = None
@@ -146,9 +150,27 @@ fn Parser::query(self : Parser) -> Query raise ParseError {
       }
     }
   }
-  let write = self.write_clause()
+  let unwinds : Array[(Expr, String)] = []
+  while self.at(KwUnwind) {
+    self.advance()
+    let source = self.expr()
+    self.expect(KwAs, "AS")
+    let variable = self.expect_text(Ident, "variable")
+    unwinds.push((source, variable))
+  }
+  let writes : Array[WriteClause] = []
+  while self.at(KwCreate) ||
+        self.at(KwMerge) ||
+        self.at(KwSet) ||
+        self.at(KwDelete) ||
+        self.at(KwDetach) {
+    match self.write_clause() {
+      Some(clause) => writes.push(clause)
+      None => break
+    }
+  }
   let has_return = self.at(KwReturn)
-  if !has_return && write is None {
+  if !has_return && writes.length() == 0 {
     raise ParseError::UnexpectedToken("RETURN", self.peek().pos)
   }
   let mut distinct = false
@@ -201,7 +223,8 @@ fn Parser::query(self : Parser) -> Query raise ParseError {
     with_,
     post,
     post_where,
-    write,
+    writes,
+    unwinds,
     has_return,
     items,
     distinct,
@@ -253,13 +276,7 @@ fn Parser::write_clause(self : Parser) -> WriteClause? raise ParseError {
     return Some(WMerge(patterns, on_create, on_match))
   }
   if self.at(KwSet) {
-    self.advance()
-    let items : Array[SetItem] = []
-    items.push(self.set_item())
-    while self.at(Comma) {
-      self.advance()
-      items.push(self.set_item())
-    }
+    let items = self.set_clause()
     return Some(WSet(items))
   }
   if self.at(KwDetach) || self.at(KwDelete) {
@@ -280,11 +297,77 @@ fn Parser::write_clause(self : Parser) -> WriteClause? raise ParseError {
 
 ///|
 fn Parser::set_item(self : Parser) -> SetItem raise ParseError {
-  let target = self.expect_text(Ident, "variable")
+  let target = self.set_target()
   self.expect(Dot, ".")
   let key = self.expect_text(Ident, "property name")
   self.expect(Eq, "=")
   { target, key, value: self.expr(), }
+}
+
+///|
+/// `n` or `(n)` as the target of an assignment.
+fn Parser::set_target(self : Parser) -> String raise ParseError {
+  if self.at(LParen) {
+    self.advance()
+    let name = self.expect_text(Ident, "variable")
+    self.expect(RParen, ")")
+    name
+  } else {
+    self.expect_text(Ident, "variable")
+  }
+}
+
+///|
+/// Parse a SET clause into individual assignments. `SET n = {a: 1, b: 2}` is
+/// expanded into one assignment per key, and `+=` behaves the same way for the
+/// keys it mentions.
+fn Parser::set_clause(self : Parser) -> Array[SetItem] raise ParseError {
+  self.expect(KwSet, "SET")
+  let items : Array[SetItem] = []
+  let mut more = true
+  while more {
+    let target = self.set_target()
+    if self.at(Dot) {
+      self.advance()
+      let key = self.expect_text(Ident, "property name")
+      self.expect(Eq, "=")
+      items.push({ target, key, value: self.expr(), })
+    } else if self.at(Plus) {
+      self.advance()
+      self.expect(Eq, "=")
+      items.append(self.map_assignments(target))
+    } else if self.at(Eq) {
+      self.advance()
+      items.append(self.map_assignments(target))
+    } else {
+      raise ParseError::UnexpectedToken("'.', '=' or '+='", self.peek().pos)
+    }
+    if self.at(Comma) {
+      self.advance()
+    } else {
+      more = false
+    }
+  }
+  items
+}
+
+///|
+fn Parser::map_assignments(
+  self : Parser,
+  target : String,
+) -> Array[SetItem] raise ParseError {
+  if self.at(LBrace) {
+    let entries = self.map_literal()
+    let items : Array[SetItem] = []
+    for (key, value) in entries {
+      items.push({ target, key, value, })
+    }
+    items
+  } else {
+    // `SET n = null` clears every property; approximated by clearing nothing.
+    ignore(self.expr())
+    []
+  }
 }
 
 ///|
@@ -417,6 +500,9 @@ fn Parser::rel_and_node(self : Parser) -> (RelPat, NodePat) raise ParseError {
       types.push(self.expect_text(Ident, "relationship type"))
       while self.at(Pipe) {
         self.advance()
+        if self.at(Colon) {
+          self.advance()
+        }
         types.push(self.expect_text(Ident, "relationship type"))
       }
     }
@@ -432,10 +518,21 @@ fn Parser::rel_and_node(self : Parser) -> (RelPat, NodePat) raise ParseError {
     self.expect(RBracket, "]")
   }
   let dir = match leading.kind {
-    ArrowLeft => {
-      self.expect(Minus, "-")
-      In
-    }
+    ArrowLeft =>
+      // `<--` and `<-->` differ only in the trailing arrow; `<-->` lexes as
+      // ArrowLeft followed by ArrowRight.
+      if self.at(ArrowRight) {
+        self.advance()
+        Both
+      } else {
+        self.expect(Minus, "-")
+        if self.at(Gt) {
+          self.advance()
+          Both
+        } else {
+          In
+        }
+      }
     _ =>
       match self.peek().kind {
         ArrowRight => {
@@ -646,6 +743,29 @@ fn Parser::postfix(self : Parser) -> Expr raise ParseError {
 }
 
 ///|
+/// `{key: expr, ...}` map literal.
+fn Parser::map_entries(self : Parser) -> Array[(String, Expr)] raise ParseError {
+  self.expect(LBrace, "{")
+  let entries : Array[(String, Expr)] = []
+  while !self.at(RBrace) {
+    let key = match self.peek().kind {
+      Ident => self.take().text
+      Str => self.take().text
+      _ => raise ParseError::UnexpectedToken("map key", self.peek().pos)
+    }
+    self.expect(Colon, ":")
+    entries.push((key, self.expr()))
+    if self.at(Comma) {
+      self.advance()
+    } else {
+      break
+    }
+  }
+  self.expect(RBrace, "}")
+  entries
+}
+
+///|
 /// `n {.name, .*, alias: expr}` projection entries.
 fn Parser::map_projection(
   self : Parser,
@@ -716,6 +836,15 @@ fn Parser::primary(self : Parser) -> Expr raise ParseError {
     KwNull => {
       self.advance()
       ELit(@mg.VNull)
+    }
+    Star => {
+      // `count(*)`: the star is a placeholder argument.
+      ignore(self.advance())
+      EVar("*")
+    }
+    LBrace => {
+      let entries = self.map_entries()
+      EMapLit(entries)
     }
     LBracket => {
       self.advance()

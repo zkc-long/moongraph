@@ -69,13 +69,16 @@ pub fn run(graph : @mg.Graph, source : String) -> QueryResult raise ParseError {
 pub fn run_script(
   graph : @mg.Graph,
   statements : Array[String],
-) -> Unit raise ParseError {
+) -> QueryResult raise ParseError {
   let mut bindings : Array[Binding] = [empty_binding()]
+  let mut last : QueryResult = { columns: [], rows: [], }
   for statement in statements {
     let query = parse_query(statement)
-    let (next, _) = execute(graph, query, bindings)
+    let (next, result) = execute(graph, query, bindings)
     bindings = next
+    last = result
   }
+  last
 }
 
 ///|
@@ -85,6 +88,26 @@ fn execute(
   initial : Array[Binding],
 ) -> (Array[Binding], QueryResult) {
   let mut bindings : Array[Binding] = initial
+  for (source, variable) in query.unwinds {
+    let expanded : Array[Binding] = []
+    for binding in bindings {
+      match eval(source, graph, binding) {
+        @mg.VList(items) =>
+          for item in items {
+            let next = binding.clone()
+            next.vals[variable] = item
+            expanded.push(next)
+          }
+        @mg.VNull => ()
+        other => {
+          let next = binding.clone()
+          next.vals[variable] = other
+          expanded.push(next)
+        }
+      }
+    }
+    bindings = expanded
+  }
   for pattern in query.patterns {
     let next : Array[Binding] = []
     for binding in bindings {
@@ -133,9 +156,9 @@ fn execute(
     }
     None => ()
   }
-  let bindings = match query.write {
-    Some(clause) => apply_write(graph, clause, reported)
-    None => reported
+  let mut bindings = reported
+  for clause in query.writes {
+    bindings = apply_write(graph, clause, bindings)
   }
   if !query.has_return {
     return (bindings, { columns: [], rows: [], })
@@ -570,6 +593,22 @@ fn eval(expr : Expr, graph : @mg.Graph, binding : Binding) -> @mg.Value {
     }
     EMapProj(base, entries) =>
       map_projection_value(base, entries, graph, binding)
+    EMapLit(entries) => {
+      let keys : Array[String] = []
+      for (key, _) in entries {
+        keys.push(key)
+      }
+      keys.sort()
+      let parts : Array[String] = []
+      for key in keys {
+        for (entry_key, value) in entries {
+          if entry_key == key {
+            parts.push(key + ": " + eval(value, graph, binding).to_cypher())
+          }
+        }
+      }
+      @mg.VStr("{" + join_strings(parts) + "}")
+    }
   }
 }
 

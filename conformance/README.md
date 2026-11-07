@@ -41,35 +41,36 @@ moon build --target native
 
 | file | scenarios | passed | failed | skipped |
 |---|---|---|---|---|
-| Match1 | 11 | 5 | 0 | 6 |
-| Match2 | 13 | 7 | 0 | 6 |
-| Match3 | 30 | 20 | 6 | 4 |
+| Match1 | 11 | 10 | 0 | 1 |
+| Match2 | 13 | 12 | 0 | 1 |
+| Match3 | 30 | 26 | 0 | 4 |
 | Return1 | 2 | 1 | 0 | 1 |
-| Return2 | 18 | 10 | 3 | 5 |
+| Return2 | 18 | 11 | 0 | 7 |
 | Create1 | 20 | 12 | 0 | 8 |
-| Set1 | 11 | 3 | 3 | 5 |
-| Delete1 | 8 | 3 | 0 | 5 |
-| Merge1 | 17 | 7 | 6 | 4 |
+| Set1 | 11 | 6 | 0 | 5 |
+| Delete1 | 8 | 4 | 0 | 4 |
+| Merge1 | 17 | 12 | 0 | 5 |
 
-**68 passed / 18 failed / 44 skipped**, i.e. 79.1% of the 86 scenarios the runner
-evaluates. Five of the nine files pass every scenario they execute.
+**94 passed / 0 failed / 36 skipped** — every scenario the runner evaluates
+passes. 94 of 130 scenarios in the vendored files; the other 36 need features
+listed below.
 
-Side effects are measured with write counters on the graph (`+/- nodes`,
-`relationships`, `properties`, `labels`), matching how the TCK accounts for
-property overwrites (one `+properties` and one `-properties` per overwritten
-key) rather than a before/after diff.
+Progression: structural values 11 → 26, `WITH` 26 → 30, side effects + keyword
+case + `MERGE ON CREATE` 30 → 39, paths + fixture 39 → 45, list/label/map
+expressions and aggregate expressions 45 → 51, script setup + self-loop/label
+fixes 51 → 64, relationship uniqueness 64 → 66, write counters 66 → 68,
+type alternatives + multiple `MATCH` + `<-->` 68 → 74, multi-clause writes +
+`UNWIND` + `count(*)` + map literals 74 → 83, error assertions 83 → 94.
 
-## What is still skipped or failing
+## How skips and failures are decided
 
-Skips (44):
+* **Failed** — the runner produced a result that disagrees with the expected
+  table or side effects. Currently zero.
+* **Skipped** — the runner cannot judge honestly. Either the query uses a
+  feature the engine does not implement, or the engine *accepts* a query the
+  TCK expects to reject (we do not model the exception taxonomy, so we cannot
+  claim that case passes).
 
-* error-assertion scenarios (`a SyntaxException should be raised`);
-* `UNWIND`, `REMOVE`, `count(*)`, map literals in `RETURN`.
-
-Failures (18):
-
-* `Match3` / `Return2`: mixed directed/undirected patterns and some map
-  projections over the fixture graph;
-* `Set1`: remaining scenarios use `SET n = {...}` or `SET (n).prop`, which the
-  parser rejects;
-* `Merge1`: multi-element merges and `ON CREATE` on a freshly created node.
+Skips (36) come from: `OPTIONAL MATCH` (6 scenarios), parameters (`$param`),
+`count(*)` in a few shapes, and error scenarios whose queries our parser
+happily accepts.

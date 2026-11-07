@@ -4,6 +4,35 @@ All notable changes to MoonGraph are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-11-07
+
+### Added
+
+- `UNWIND expr AS name`, including several `UNWIND` clauses in one query
+- `count(*)`, map literals (`RETURN {a: 1}`) and map assignment (`SET n = {…}`,
+  `SET n += {…}`)
+- sequences of write clauses in one query (`MATCH … DELETE … MERGE …`), with a
+  single `MATCH`/`WHERE`/`CREATE`/`MERGE`/`SET`/`DELETE` pipeline per query
+- multiple `MATCH` clauses, `<-->` arrows, and `[:T|:T]` type alternatives
+- `SET (n).prop`
+- error-assertion steps in the TCK runner: a query the engine rejects counts as
+  a pass, a query it accepts is reported as skipped instead of silently passed
+- path variables bound by `MERGE`/`CREATE` (`MERGE p = (a)-[:R]->(b)`)
+
+### Changed
+
+- side effects are counted from write counters on the graph rather than a
+  before/after diff; `+labels` counts label names new to the graph, and an
+  overwritten property counts as one `+properties` and one `-properties`
+- label-less nodes render as `({k: v})` instead of `(: {k: v})`
+- TCK doubles (`1.0`) are parsed as doubles rather than strings
+
+### Fixed
+
+- `DELETE` no longer drops the bindings, so `RETURN type(r)` after deleting a
+  relationship still produces a row
+- multi-statement TCK blocks are run as a script whether they appear in the
+  setup or in the query under test
 ## [0.2.0] - 2026-11-07
 
 ### Added

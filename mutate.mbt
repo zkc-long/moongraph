@@ -58,7 +58,7 @@ pub fn Graph::delete_node(self : Graph, id : Int32) -> Unit {
   self.alive_nodes[id] = false
   self.bump_effect("-nodes")
   for label in self.nodes[id].labels {
-    self.note_effect("-labels", "L:" + label)
+    self.note_label_removed(label)
   }
   for key, _value in self.nodes[id].props {
     self.note_effect("-properties", "P:" + id.to_string() + ":" + key)
@@ -223,6 +223,34 @@ pub fn Graph::stats(self : Graph) -> GraphStats {
 pub fn Graph::reset_side_effects(self : Graph) -> Unit {
   self.side_effects = Map([])
   self.side_effect_keys = Map([])
+  self.baseline_labels = Map([])
+  for label, ids in self.label_index {
+    for id in ids {
+      if self.alive_nodes[id] {
+        self.baseline_labels[label] = true
+      }
+    }
+  }
+}
+
+///|
+/// The TCK counts +labels as label *names* that the graph did not have
+/// before the query, not as label assignments to nodes.
+pub fn Graph::note_label_added(self : Graph, label : String) -> Unit {
+  if self.baseline_labels.get(label).unwrap_or(false) {
+    return
+  }
+  self.note_effect("+labels", label)
+}
+
+///|
+pub fn Graph::note_label_removed(self : Graph, label : String) -> Unit {
+  for id, alive in self.alive_nodes {
+    if alive && self.nodes[id].labels.contains(label) {
+      return
+    }
+  }
+  self.note_effect("-labels", label)
 }
 
 ///|

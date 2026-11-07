@@ -71,7 +71,9 @@ fn apply_write(
       for id in doomed_nodes {
         graph.delete_node(id)
       }
-      []
+      // Bindings survive the delete: `RETURN type(r)` on a deleted
+      // relationship is still expected to produce a row.
+      bindings
     }
   }
 }
@@ -85,6 +87,7 @@ fn create_pattern(
   binding : Binding,
 ) -> Binding {
   let mut current = binding
+  let mut path_text = ""
   let mut current_node = match resolve_node(pattern.start, current) {
     Some(id) => id
     None => {
@@ -104,6 +107,7 @@ fn create_pattern(
       id
     }
   }
+  path_text = graph.node_text(current_node)
   for hop in pattern.hops {
     let target = match resolve_node(hop.node, current) {
       Some(id) => id
@@ -142,7 +146,15 @@ fn create_pattern(
       current = current.clone()
       current.rels[hop.rel.variable] = edge_id
     }
+    path_text = path_text +
+      rel_step_text(hop.rel, edge_id, graph) +
+      graph.node_text(target)
     current_node = target
+  }
+  if pattern.variable != "" {
+    current = current.clone()
+    current.paths[pattern.variable] = path_text
+    current.path_lens[pattern.variable] = pattern.hops.length()
   }
   current
 }

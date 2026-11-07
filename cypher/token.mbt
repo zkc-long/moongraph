@@ -64,6 +64,7 @@ pub enum TokKind {
   KwDelete
   KwDetach
   KwWith
+  KwUnwind
 }
 
 ///|
@@ -113,6 +114,7 @@ fn keyword_kind(word : String) -> TokKind {
     "DELETE" => KwDelete
     "DETACH" => KwDetach
     "WITH" => KwWith
+    "UNWIND" => KwUnwind
     _ => Ident
   }
 }

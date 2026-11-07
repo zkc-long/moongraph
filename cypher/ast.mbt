@@ -15,6 +15,7 @@ pub enum Expr {
   EHasLabel(Expr, Array[String])
   EListComp(String, Expr, Expr?, Expr)
   EMapProj(Expr, Array[(String, Expr?)])
+  EMapLit(Array[(String, Expr)])
 }
 
 ///|
@@ -80,7 +81,8 @@ pub struct Query {
   with_ : WithClause?
   post : Array[PathPat]
   post_where : Expr?
-  write : WriteClause?
+  writes : Array[WriteClause]
+  unwinds : Array[(Expr, String)]
   has_return : Bool
   where_ : Expr?
   items : Array[ReturnItem]
@@ -174,6 +176,13 @@ pub fn expr_text(expr : Expr) -> String {
         }
       }
       expr_text(base) + " {" + join_text(parts) + "}"
+    }
+    EMapLit(entries) => {
+      let parts : Array[String] = []
+      for (key, value) in entries {
+        parts.push(key + ": " + expr_text(value))
+      }
+      "{" + join_text(parts) + "}"
     }
   }
 }

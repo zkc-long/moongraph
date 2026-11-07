@@ -172,6 +172,10 @@ fn group_bindings(
 fn fold(expr : Expr, graph : @mg.Graph, bindings : Array[Binding]) -> @mg.Value {
   match expr {
     EFunc(name, args) => {
+      // count(*) counts rows, including rows where every value is null.
+      if name == "count" && is_row_star(args) {
+        return @mg.VInt(bindings.length().to_int64())
+      }
       let values : Array[@mg.Value] = []
       for binding in bindings {
         match args {
@@ -543,5 +547,16 @@ fn sample(members : Array[Binding]) -> Binding {
     empty_binding()
   } else {
     members[0]
+  }
+}
+
+///|
+fn is_row_star(args : Array[Expr]) -> Bool {
+  if args.length() != 1 {
+    return false
+  }
+  match args[0] {
+    EVar(name) => name == "*"
+    _ => false
   }
 }
