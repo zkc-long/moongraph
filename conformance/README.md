@@ -52,7 +52,7 @@ moon build --target native
 | Merge1 | 17 | 7 | 5 | 5 |
 
 **66 passed / 19 failed / 45 skipped**, i.e. 77.6% of the 85 scenarios the runner
-evaluates. Six of the nine files are at 100% of what they execute.
+evaluates. Five of the nine files are at 100% of what they execute (Match1, Match2, Return1, Create1, Delete1).
 
 Progression: structural values 11 → 26, `WITH` 26 → 30, side effects + keyword
 case + `MERGE ON CREATE` 30 → 39, paths + fixture 39 → 45, list/label/map
